@@ -1,0 +1,15 @@
+strictness: veryhigh
+
+pep8:
+  disable:
+    - N802
+    - W503
+
+pyflakes:
+  disable:
+    - F405
+
+pylint:
+  disable:
+    - no-value-for-parameter
+    - logging-fstring-interpolation

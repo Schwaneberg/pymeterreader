@@ -1,0 +1,36 @@
+devices:
+  electric meter:
+    channels:
+      1.8.0:
+        uuid: c07ef180-e4c6-11e9-95a6-434024b862ef
+        interval: 5m
+    tty: /dev/ttyUSB\d+  # optional, regex support
+    id: 1 EMH00 12345678
+    protocol: sml
+    baudrate: 9600
+  heat meter:
+    channels:
+      6.8:
+        uuid: 83b52b26-1c1a-444d-bf46-d9c702fee644
+        factor: 1000  # convert kWh to Wh
+        interval: 12h
+    id: 888777666
+    protocol: plain
+  climate basement:
+    channels:
+      humidity:
+        uuid: ca5a59ee-5de5-4a20-a24a-fdb5f64e5db0
+        interval: 1h
+      temperature:
+        uuid: 397eda02-7909-4af8-b1a6-3d6c8535229a
+        interval: 1h
+      pressure:
+        uuid: 250ca04a-02ee-4a1b-98dd-3423b21008b7
+        interval: 1h
+    id: 0x76  # Default I2C address
+    protocol: BME280  # A sensor, not a real meter
+
+middleware:
+  type: volkszaehler
+  middleware_url: http://localhost/middleware.php  # optional, defaults to local host
+  interpolate: True  # Interpolate hourly values, if interval >=2h
