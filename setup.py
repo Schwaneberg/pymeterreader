@@ -1,32 +1,73 @@
 #!/usr/bin/env python3
+from os import system
 from os.path import exists
-from logging import info, error
+import logging
 from subprocess import run
 from setuptools import setup, find_packages
+from setuptools.command.install import install
 import subprocess
 import re
-import os
 import sys
 
+logging.basicConfig(level=logging.INFO)
 NAME = 'PyMeterReader'
-VERSION_FILE = 'VERSION'
-DATA_PATH = "misc"
-SERVICE_TEMPLATE_FILE = "pymeterreader.service.template"
+SERVICE_TEMPLATE = '[Unit]\n' \
+                   'Description=PyMeterReader\n' \
+                   'After=network.target\n' \
+                   'StartLimitIntervalSec=0\n' \
+                   '\n' \
+                   '[Service]\n' \
+                   'Type=simple\n' \
+                   'Restart=always\n' \
+                   'RestartSec=5\n' \
+                   'User=www-data\n' \
+                   'PermissionsStartOnly=true\n' \
+                   'ExecStart={}\n' \
+                   '\n' \
+                   '[Install]\n' \
+                   'WantedBy=multi-user.target\n'
+
+LOG = []
+
+
+def info(msg):
+    LOG.append((lambda msg: system(f'echo "INFO {msg}"'), msg))
+
+
+def error(msg):
+    LOG.append((lambda msg: system(f'echo "ERROR {msg}"'), msg))
+
+
+class PostInstallCommand(install):
+    """
+    Post-installation for installation mode.
+    Prints output from this script, but only in verbose mode
+    """
+    def run(self):
+        install.run(self)
+        for log_fn, msg in LOG:
+            log_fn(msg)
+
 
 def update_version():
     out = subprocess.Popen(['git', 'describe', '--tags'], stdout=subprocess.PIPE)
     stdout = out.communicate()
     full_version = str(stdout[0].strip())
-    matches = re.search(r'(\d+.\d+.\d+)', full_version)
+    match = re.search(r'(\d+.\d+.\d+)', full_version)
     new_version = "0.0.0"
-    version_file_path = os.sep.join([DATA_PATH, VERSION_FILE])
-    if matches:
-        new_version = matches.group(0).replace("-", ".")
-        with open(version_file_path, 'w') as version_file:
-            version_file.write(new_version)
-    elif exists(version_file_path):
-        with open(version_file_path, 'r') as version_file:
-            new_version = version_file.readline().strip()
+    if match:
+        new_version = match.group(0).replace("-", ".")
+    elif exists('PKG-INFO'):
+        with open('PKG-INFO', 'r') as pkg_file:
+            match = None
+            for line in pkg_file.readlines():
+                match = re.match(r'Version: (\d+.\d+.\d+)', line)
+                if match:
+                    new_version = match[1]
+                    info(f"Read version {new_version} from PKG-INFO")
+                    break
+            if match is None:
+                error("Cannot find version in PKG-INFO!")
     else:
         error("Neither GIT nor VERSION file available!")
     return new_version
@@ -38,33 +79,50 @@ def register_systemd_service():
         universal_newlines=True,
         shell=True)
 
-    template_path = os.sep.join([DATA_PATH, SERVICE_TEMPLATE_FILE])
     target_service_file = "/etc/systemd/system/pymeterreader.service"
-
-    with open(template_path, "r") as templateService:
-        service_template_str = templateService.read()
 
     output = o = run('which python3',
                      universal_newlines=True,
                      shell=True, capture_output=True)
     python3_path = output.stdout.strip()
-    service_str = service_template_str.format(f'{python3_path} /usr/local/bin/pymeterreader -c /etc/pymeterreader.yaml')
+    service_str = SERVICE_TEMPLATE.format(f'{python3_path} /usr/local/bin/pymeterreader -c /etc/pymeterreader.yaml')
     try:
         with open(target_service_file, 'w') as target_file:
             target_file.write(service_str)
         run('systemctl daemon-reload',  # pylint: disable=subprocess-run-check
             universal_newlines=True,
             shell=True)
+        if not exists('/etc/pymeterreader.yaml'):
+            info("Copy example configuration file to '/etc/pymeterreader.yaml'")
+            with open('example_configuration.yaml', 'r') as file:
+                example_config = file.read()
+            with open('/etc/pymeterreader.yaml', 'w') as file:
+                file.write(example_config)
+        info("Registered pymeterreader as servicee.\n"
+             "Enable with 'sudo systemctl enable pymeterreader'\n."
+             "IMPORTANT: Create configuration file '/etc/pymeterreader.yaml'")
     except OSError as err:
         if isinstance(err, PermissionError):
             error("Cannot write service file to /etc/systemd/system. Run as root (sudo) to solve this.")
 
 
 def get_requirements():
-    with open('requirements.txt', 'r') as req_file:
-        requirements = [req.strip() for req in req_file.readlines() if req]
+    if exists('requirements.txt'):
+        file_name = 'requirements.txt'
+    elif exists('PyMeterReader.egg-info/requires.txt'):
+        file_name = 'PyMeterReader.egg-info/requires.txt'
+    else:
+        error("Cannot find requirements.txt")
+        sys.exit(2)
+    requirements = []
+    with open(file_name, 'r') as req_file:
+        for req in req_file.readlines():
+            req = req.strip()
+            if req:
+                requirements.append(req)
+            elif "[test]" in req:
+                break
     return requirements
-
 
 setup(name=NAME,
       version=update_version(),
@@ -80,13 +138,13 @@ setup(name=NAME,
       author_email='Oliver.Schwaneberg@gmail.com',
       license='BSD-2-Clause',
       include_package_data=True,
-      packages=find_packages(),
-      data_files=[(DATA_PATH, [SERVICE_TEMPLATE_FILE,
-                               VERSION_FILE]),
-                  ('.', 'requirements.txt')],
+      packages=find_packages('.'),
+      data_files=[('.', ['example_configuration.yaml'])],
       install_requires=get_requirements(),
-      zip_safe=False,
       test_suite='nose.collector',
+      cmdclass={
+        'install': PostInstallCommand,
+      },
       extras_require=
       {
           'test': [
@@ -95,5 +153,7 @@ setup(name=NAME,
           ]
       })
 
-if sys.argv[1] == 'install':
+if sys.argv[1] == 'bdist_wheel':
     register_systemd_service()
+else:
+    info("Skipping service registration.")
