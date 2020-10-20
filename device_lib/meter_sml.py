@@ -99,7 +99,7 @@ class SmlReader(BaseReader):
             error(f'Exception occurred while accessing accessing {self.tty_path}: {err}')
         return None
 
-    def __probe(self) -> bool:
+    def __probe(self) -> tp.Optional[Sample]:
         sp = os.path.sep
         potential_ttys = [f'{sp}dev{sp}{file_name}'
                           for file_name in os.listdir(f'{sp}dev{sp}')
@@ -107,17 +107,18 @@ class SmlReader(BaseReader):
                           and file_name not in self.BOUND_INTERFACES]
         if not potential_ttys:
             error(f"Could not find any interfaces matching r'{self.tty_pattern}'!")
-            return False
+            return None
         for tty_path in potential_ttys:
             self.tty_path = tty_path
-            if self.poll() is not None:
+            sample = self.poll()
+            if sample is not None:
                 info(f'{self.meter_id} binding to {tty_path}.')
-                return True
+                return sample
             self.tty_path = None
             debug(f'{self.meter_id} not found at {tty_path}.')
         error(f"Could not detect meter {self.meter_id} "
               f"while scanning {', '.join(potential_ttys)}.")
-        return False
+        return None
 
     def __parse(self, sml_frame: tp.Union[list, dict], parsed=None) -> Sample:
         """
