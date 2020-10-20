@@ -8,8 +8,8 @@ from logging import info, debug, error
 import typing as tp
 import serial
 from threading import Lock
-from device_lib.base import BaseReader
-from device_lib.common import Sample, strip
+from pymeterreader.device_lib.base import BaseReader
+from pymeterreader.device_lib.common import Sample, strip
 
 
 class PlainReader(BaseReader):

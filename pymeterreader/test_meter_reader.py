@@ -1,8 +1,8 @@
 import unittest
 from unittest import mock
-from meter_reader import map_configuration
-from gateway import BaseGateway
-from device_lib.common import Sample
+from pymeterreader.meter_reader import map_configuration
+from pymeterreader.gateway import BaseGateway
+from pymeterreader.device_lib.common import Sample
 
 EXAMPLE_CONF = {'devices': {
     'electric meter': {'channels': {'1.8.0': {'uuid': 'c07ef180-e4c6-11e9-95a6-434024b862ef', 'interval': '5m'}},
@@ -48,10 +48,10 @@ class MockedReader():
 
 
 class TestMeterReader(unittest.TestCase):
-    @mock.patch("meter_reader.VolkszaehlerGateway", return_value=MockedGateway('http://192.168.1.1/', True))
-    @mock.patch("meter_reader.SmlReader", return_value=MockedReader(SAMPLE_SML))
-    @mock.patch("meter_reader.PlainReader",  return_value=MockedReader(SAMPLE_PLAIN))
-    @mock.patch("meter_reader.Bme280Reader",  return_value=MockedReader(SAMPLE_BME))
+    @mock.patch("pymeterreader.meter_reader.VolkszaehlerGateway", return_value=MockedGateway('http://192.168.1.1/', True))
+    @mock.patch("pymeterreader.meter_reader.SmlReader", return_value=MockedReader(SAMPLE_SML))
+    @mock.patch("pymeterreader.meter_reader.PlainReader",  return_value=MockedReader(SAMPLE_PLAIN))
+    @mock.patch("pymeterreader.meter_reader.Bme280Reader",  return_value=MockedReader(SAMPLE_BME))
     def test_meter_reader(self, mock_bme, mock_plain, mock_sml, mock_gw):
         meter_reader_nodes = map_configuration(EXAMPLE_CONF)
         self.assertEqual(3, len(meter_reader_nodes))

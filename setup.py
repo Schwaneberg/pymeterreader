@@ -10,9 +10,9 @@ import re
 import sys
 
 logging.basicConfig(level=logging.INFO)
-NAME = 'PyMeterReader'
+NAME = 'pymeterreader'
 SERVICE_TEMPLATE = '[Unit]\n' \
-                   'Description=PyMeterReader\n' \
+                   'Description=pymeterreader\n' \
                    'After=network.target\n' \
                    'StartLimitIntervalSec=0\n' \
                    '\n' \
@@ -20,8 +20,7 @@ SERVICE_TEMPLATE = '[Unit]\n' \
                    'Type=simple\n' \
                    'Restart=always\n' \
                    'RestartSec=5\n' \
-                   'User=www-data\n' \
-                   'PermissionsStartOnly=true\n' \
+                   'User=root\n' \
                    'ExecStart={}\n' \
                    '\n' \
                    '[Install]\n' \
@@ -81,11 +80,7 @@ def register_systemd_service():
 
     target_service_file = "/etc/systemd/system/pymeterreader.service"
 
-    output = o = run('which python3',
-                     universal_newlines=True,
-                     shell=True, capture_output=True)
-    python3_path = output.stdout.strip()
-    service_str = SERVICE_TEMPLATE.format(f'{python3_path} /usr/local/bin/pymeterreader -c /etc/pymeterreader.yaml')
+    service_str = SERVICE_TEMPLATE.format('pymeterreader -c /etc/pymeterreader.yaml')
     try:
         with open(target_service_file, 'w') as target_file:
             target_file.write(service_str)
@@ -124,9 +119,10 @@ def get_requirements():
                 break
     return requirements
 
+
 setup(name=NAME,
       version=update_version(),
-      description='PyMeterReader is a service to poll smart meters and sensors.'
+      description='pymeterreader is a service to poll smart meters and sensors.'
                   'It supports uploading to volkszaehler middleware via its REST API.',
       classifiers=[
           'License :: BSD-2-Clause',
@@ -137,9 +133,12 @@ setup(name=NAME,
       author='Oliver Schwaneberg',
       author_email='Oliver.Schwaneberg@gmail.com',
       license='BSD-2-Clause',
+      entry_points={
+        'console_scripts': ['pymeterreader=pymeterreader:main']},
       include_package_data=True,
       packages=find_packages('.'),
-      data_files=[('.', ['example_configuration.yaml'])],
+      data_files=[('.', ['example_configuration.yaml',
+                         'requirements.txt'])],
       install_requires=get_requirements(),
       test_suite='nose.collector',
       cmdclass={

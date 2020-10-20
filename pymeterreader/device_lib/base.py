@@ -5,7 +5,7 @@ Created 2020.10.12 by Oliver Schwaneberg
 import typing as tp
 from abc import ABC, abstractmethod
 from logging import warning
-from device_lib.common import Sample
+from pymeterreader.device_lib.common import Sample
 
 
 class BaseReader(ABC):

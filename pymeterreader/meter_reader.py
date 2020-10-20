@@ -12,8 +12,8 @@ import typing as tp
 import humanfriendly
 import numpy as np
 import argparse
-from device_lib import *
-from gateway import *
+from pymeterreader.device_lib import *
+from pymeterreader.gateway import *
 
 PARSER = argparse.ArgumentParser(description='MeterReader reads out supported devices '
                                              'and forwards the data to a middleware '
@@ -287,7 +287,6 @@ class MeterReader:
     """
     def __init__(self, config_file):
         signal.signal(signal.SIGINT, self.__keyboard_interrupt_handler)
-        logging.basicConfig(level=logging.DEBUG if ARGS.debug else logging.INFO)
         config = self.__read_config_file(config_file)
         meter_reader_nodes = map_configuration(config)
         logging.info(f"Starting {len(meter_reader_nodes)} worker threads...")
@@ -326,7 +325,12 @@ class MeterReader:
         return {}
 
 
-if __name__ == '__main__':
+def main():
     ARGS = PARSER.parse_args()
+    logging.basicConfig(level=logging.DEBUG if ARGS.debug else logging.INFO)
     meter_reader = MeterReader(ARGS.configfile)
     meter_reader.block_main()
+
+
+if __name__ == '__main__':
+    main()

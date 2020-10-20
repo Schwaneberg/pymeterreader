@@ -1,6 +1,6 @@
 import unittest
 from unittest import mock
-from device_lib.meter_plain import PlainReader
+from pymeterreader.device_lib.meter_plain import PlainReader
 
 START_SEQ = b'\x1b\x1b\x1b\x1b\x01\x01\x01\x01'
 TEST_FRAME = b'\x026.8(0006047*kWh)6.26(00428.35*m3)9.21(99999999)\r\n'
@@ -39,8 +39,8 @@ def bytes_to_bytearray(data):
 
 
 class TestSmlMeters(unittest.TestCase):
-    @mock.patch('device_lib.meter_sml.os.listdir', autospec=True)
-    @mock.patch('device_lib.meter_plain.serial', autospec=True)
+    @mock.patch('pymeterreader.device_lib.meter_sml.os.listdir', autospec=True)
+    @mock.patch('pymeterreader.device_lib.meter_plain.serial', autospec=True)
     def test_init(self, mock_serial, mock_listdir):
         mserial = MockSerial(b'', [b'\x00', TEST_FRAME])
         mock_serial.Serial.return_value = mserial
@@ -54,8 +54,8 @@ class TestSmlMeters(unittest.TestCase):
         self.assertEqual(1, mserial.close_called)
         self.assertEqual(40 * b'\00' + b"/?!\x0D\x0A", mserial.written)
 
-    @mock.patch('device_lib.meter_sml.os.listdir', autospec=True)
-    @mock.patch('device_lib.meter_plain.serial', autospec=True)
+    @mock.patch('pymeterreader.device_lib.meter_sml.os.listdir', autospec=True)
+    @mock.patch('pymeterreader.device_lib.meter_plain.serial', autospec=True)
     def test_init_fail(self, mock_serial, mock_listdir):
         mserial = MockSerial(b'', [b'\x00', b'foobar'])
         mock_serial.Serial.return_value = mserial

@@ -1,5 +1,5 @@
 import unittest
-from device_lib.sensor_bme280 import Bme280Reader
+from pymeterreader.device_lib.sensor_bme280 import Bme280Reader
 
 
 class TestBme280(unittest.TestCase):

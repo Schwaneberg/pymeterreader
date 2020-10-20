@@ -10,8 +10,8 @@ import smbus
 import time
 from ctypes import c_short
 from threading import Lock
-from device_lib.base import BaseReader
-from device_lib.common import Sample
+from pymeterreader.device_lib.base import BaseReader
+from pymeterreader.device_lib.common import Sample
 
 
 class Bme280Reader(BaseReader):
