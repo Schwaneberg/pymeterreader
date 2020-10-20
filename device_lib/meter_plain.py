@@ -47,9 +47,8 @@ class PlainReader(BaseReader):
             sample = self.__probe()
             if sample:
                 return sample
-            else:
-                error("This reader could not be bound to any device node!")
-                return None
+            error("This reader could not be bound to any device node!")
+            return None
         try:
             with self.__SERIAL_LOCK:
                 ser = serial.Serial(self.tty_path,

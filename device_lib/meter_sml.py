@@ -59,9 +59,11 @@ class SmlReader(BaseReader):
         :return: Sample, if successful
         """
         if self.tty_path is None:
-            if not self.__probe():
-                error("This reader could not be bound to any device node!")
-                return None
+            sample = self.__probe()
+            if sample:
+                return sample
+            error("This reader could not be bound to any device node!")
+            return None
         try:
             with self.__SERIAL_LOCK:
                 ser = serial.Serial(self.tty_path,

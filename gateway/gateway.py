@@ -29,7 +29,7 @@ class BaseGateway(ABC):
         raise NotImplementedError("Abstract Base for GET")
 
 
-class VolkszahlerGateway(BaseGateway):
+class VolkszaehlerGateway(BaseGateway):
     """
     This class implements an uploader
     to a Volkszahler midlleware server.

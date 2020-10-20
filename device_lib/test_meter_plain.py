@@ -8,7 +8,7 @@ TEST_FRAME = b'\x026.8(0006047*kWh)6.26(00428.35*m3)9.21(99999999)\r\n'
 # 6.8: count
 
 
-class MockSerial():
+class MockSerial:
     def __init__(self, chars, lines):
         self.chars = chars
         self.lines = lines
@@ -46,8 +46,11 @@ class TestSmlMeters(unittest.TestCase):
         mock_serial.Serial.return_value = mserial
         mock_listdir.return_value = ['ttyUSB0']
         sml_meter = PlainReader('99999999')
+        sample = sml_meter.poll()
+        self.assertEqual(6047, sample.channels[0]['value'])
+        self.assertEqual('6.8', sample.channels[0]['objName'])
+        self.assertEqual('kWh', sample.channels[0]['unit'])
         self.assertIsNotNone(sml_meter.tty_path)
-        self.assertTrue(sml_meter.initialized)
         self.assertEqual(1, mserial.close_called)
         self.assertEqual(40 * b'\00' + b"/?!\x0D\x0A", mserial.written)
 
@@ -58,6 +61,8 @@ class TestSmlMeters(unittest.TestCase):
         mock_serial.Serial.return_value = mserial
         mock_listdir.return_value = ['ttyUSB0']
         sml_meter = PlainReader('99999999')
+        sample = sml_meter.poll()
+        self.assertIsNone(sample)
         self.assertIsNone(sml_meter.tty_path)
         self.assertEqual(1, mserial.close_called)
         self.assertEqual(40 * b'\00' + b"/?!\x0D\x0A", mserial.written)

@@ -1,6 +1,7 @@
 import unittest
 from unittest import mock
 from meter_reader import map_configuration
+from gateway import BaseGateway
 from device_lib.common import Sample
 
 EXAMPLE_CONF = {'devices': {
@@ -16,9 +17,9 @@ EXAMPLE_CONF = {'devices': {
 
 SAMPLE_BME = Sample()
 SAMPLE_BME.meter_id = '0x76'
-SAMPLE_BME.channels = [{'objName': 'temperature', 'value': 20.0, 'unit': 'C'},
-            {'objName': 'humidity', 'value': 50.0, 'unit': '%'},
-            {'objName': 'pressure', 'value': 1000.0, 'unit': 'hPa'}]
+SAMPLE_BME.channels = [{'objName': 'TEMPERATURE', 'value': 20.0, 'unit': 'C'},
+            {'objName': 'HUMIDITY', 'value': 50.0, 'unit': '%'},
+            {'objName': 'PRESSURE', 'value': 1000.0, 'unit': 'hPa'}]
 
 SAMPLE_SML = Sample()
 SAMPLE_SML.meter_id = '1 EMH00 12345678'
@@ -29,20 +30,29 @@ SAMPLE_PLAIN.meter_id = 888777666
 SAMPLE_PLAIN.channels = [{'objName': '6.8', 'value': 20000, 'unit': 'kWh'}]
 
 
+class MockedGateway(BaseGateway):
+    def post(self, uuid: str, value, timestamp):
+        return True
+
+    def get(self, uuid):
+        return None
+
+
 class MockedReader():
     def __init__(self, sample):
         self.sample = sample
-        self.initialized = True
+        self.meter_id = None
 
     def poll(self):
         return self.sample
 
 
 class TestMeterReader(unittest.TestCase):
+    @mock.patch("meter_reader.VolkszaehlerGateway", return_value=MockedGateway('http://192.168.1.1/', True))
     @mock.patch("meter_reader.SmlReader", return_value=MockedReader(SAMPLE_SML))
     @mock.patch("meter_reader.PlainReader",  return_value=MockedReader(SAMPLE_PLAIN))
     @mock.patch("meter_reader.Bme280Reader",  return_value=MockedReader(SAMPLE_BME))
-    def test_meter_reader(self, mock_bme, mock_plain, mock_sml):
+    def test_meter_reader(self, mock_bme, mock_plain, mock_sml, mock_gw):
         meter_reader_nodes = map_configuration(EXAMPLE_CONF)
         self.assertEqual(3, len(meter_reader_nodes))
 

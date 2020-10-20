@@ -22,8 +22,6 @@ PARSER = argparse.ArgumentParser(description='MeterReader reads out supported de
 PARSER.add_argument('-d', '--debug', help='Make process chatty.', action='store_true')
 PARSER.add_argument('-c', '--configfile', help="User for Jama login", default='/etc/meter_reader.yaml')
 
-ARGS = PARSER.parse_args()
-
 
 def humanfriendly_time_parser(humanfriendly_input: tp.Union[int, float, str]) -> int:
     """
@@ -231,8 +229,8 @@ def map_configuration(config: dict) -> tp.List[MeterReaderNode]:  # noqa MC0001
     if 'devices' in config and 'middleware' in config:
         try:
             if config.get('middleware').get('type') == 'volkszaehler':
-                gateway = VolkszahlerGateway(config.get('middleware').get('middleware_url'),
-                                             config.get('middleware').get('interolate', True))
+                gateway = VolkszaehlerGateway(config.get('middleware').get('middleware_url'),
+                                              config.get('middleware').get('interolate', True))
             else:
                 logging.error(f'Middleware "{config.get("middleware").get("type")}" not supported!')
                 gateway = None
@@ -329,5 +327,6 @@ class MeterReader:
 
 
 if __name__ == '__main__':
+    ARGS = PARSER.parse_args()
     meter_reader = MeterReader(ARGS.configfile)
     meter_reader.block_main()

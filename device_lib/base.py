@@ -16,6 +16,7 @@ class BaseReader(ABC):
     See https://en.wikipedia.org/wiki/IEC_62056
     """
     PROTOCOL = "ABSTRACT"
+    BOUND_INTERFACES = {}
 
     @abstractmethod
     def __init__(self, meter_id: tp.Union[str, int], tty=r'/dev/ttyUSB\d+', **kwargs):
