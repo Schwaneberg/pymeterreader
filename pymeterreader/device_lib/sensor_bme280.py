@@ -56,6 +56,7 @@ class Bme280Reader(BaseReader):
         Poll device
         :return: True, if successful
         """
+        # pylint: disable=too-many-locals, too-many-statements
         # TODO Refactoring required
         sample = Sample()
         with self.__I2C_LOCK:
