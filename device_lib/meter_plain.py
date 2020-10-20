@@ -37,6 +37,7 @@ class PlainReader(BaseReader):
         self.wakeup_zeros = kwargs.get('send_wakeup_zeros', 40)
         self.initial_baudrate = kwargs.get('initial_baudrate', 300)
         self.baudrate = kwargs.get('baudrate', 2400)
+        self.tty_path = None
 
     def poll(self) -> tp.Optional[Sample]:
         """
@@ -82,7 +83,8 @@ class PlainReader(BaseReader):
         sp = os.path.sep
         potential_ttys = [f'{sp}dev{sp}{file_name}'
                           for file_name in os.listdir(f'{sp}dev{sp}')
-                          if re.match(self.tty_pattern, file_name)]
+                          if re.match(self.tty_pattern, file_name)
+                          and file_name not in self.BOUND_INTERFACES]
         if not potential_ttys:
             error(f"Could not find any interfaces matching r'{self.tty_pattern}'!")
             return None

@@ -38,6 +38,7 @@ class SmlReader(BaseReader):
         :stopbits: Number of stopbits (Default: 1)
         """
         try:
+            self.tty_path = None
             self.baudrate = int(kwargs.pop('baudrate', 9600))
             self.bytesize = int(kwargs.pop('bytesize', 8))
             self.stopbits = int(kwargs.pop('stopbits', 1))
@@ -102,7 +103,8 @@ class SmlReader(BaseReader):
         sp = os.path.sep
         potential_ttys = [f'{sp}dev{sp}{file_name}'
                           for file_name in os.listdir(f'{sp}dev{sp}')
-                          if re.match(self.tty_pattern, file_name)]
+                          if re.match(self.tty_pattern, file_name)
+                          and file_name not in self.BOUND_INTERFACES]
         if not potential_ttys:
             error(f"Could not find any interfaces matching r'{self.tty_pattern}'!")
             return False

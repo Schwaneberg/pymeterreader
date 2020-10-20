@@ -16,7 +16,7 @@ class BaseReader(ABC):
     See https://en.wikipedia.org/wiki/IEC_62056
     """
     PROTOCOL = "ABSTRACT"
-    BOUND_INTERFACES = {}
+    BOUND_INTERFACES = set()
 
     @abstractmethod
     def __init__(self, meter_id: tp.Union[str, int], tty=r'/dev/ttyUSB\d+', **kwargs):
@@ -26,12 +26,25 @@ class BaseReader(ABC):
         :param tty: Name or regex pattern of the tty node to use
         :kwargs: device specific parameters
         """
-        self.meter_id = meter_id
+        self._meter_id = meter_id
         self.tty_pattern = tty
         self.tty_path = None
         if kwargs:
             warning(f'Unknown parameter{"s" if len(kwargs) > 1 else ""}:'
                     f' {", ".join(kwargs.keys())}')
+
+    @property
+    def meter_id(self):
+        return self._meter_id
+
+    @meter_id.setter
+    def meter_id(self, meter_id):
+        if self._meter_id is not None:
+            self.BOUND_INTERFACES.remove(self._meter_id)
+        if meter_id in self.BOUND_INTERFACES:
+            raise KeyError(f"{meter_id} already in use.")
+        self.BOUND_INTERFACES.add(meter_id)
+        self._meter_id = meter_id
 
     @abstractmethod
     def poll(self) -> tp.Optional[Sample]:
