@@ -125,9 +125,11 @@ setup(name=NAME,
       description='pymeterreader is a service to poll smart meters and sensors.'
                   'It supports uploading to volkszaehler middleware via its REST API.',
       classifiers=[
-          'License :: BSD-2-Clause',
-          'Programming Language :: Python :: 3.7',
-          'Topic :: Volkszaehler.org :: Smart Meters'
+          'Development Status :: 4 - Beta',
+          'Environment :: Console',
+          'License :: OSI Approved :: BSD License',
+          'Operating System :: POSIX :: Linux',
+          'Programming Language :: Python :: 3.7'
       ],
       url='https://github.com/Schwaneberg/pymeterreader',
       author='Oliver Schwaneberg',
