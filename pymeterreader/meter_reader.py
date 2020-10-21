@@ -149,12 +149,12 @@ class MeterReaderNode:
         return posted == len(self.__channels)
 
     def __push_interpolated_data(self, cur_value: tp.Union[float, int], cur_time: float, channel: ChannelInfo):
-        hours = round((cur_time / 1000.0 - channel.last_upload / 1000.0) / 3600.0)
+        hours = round((cur_time - channel.last_upload) / 3600)
         diff = cur_value - channel.last_value
         if hours <= 24:
-            for t in range(1, hours):
-                btw_time = channel.last_upload + t * 3600000
-                btw_value = channel.last_value + diff * (t / hours)
+            for hour in range(1, hours):
+                btw_time = channel.last_upload + hour * 3600
+                btw_value = channel.last_value + diff * (hour / hours)
                 self.__gateway.post(channel.uuid,
                                     btw_value,
                                     btw_time)
@@ -230,7 +230,7 @@ def map_configuration(config: dict) -> tp.List[MeterReaderNode]:  # noqa MC0001
         try:
             if config.get('middleware').get('type') == 'volkszaehler':
                 gateway = VolkszaehlerGateway(config.get('middleware').get('middleware_url'),
-                                              config.get('middleware').get('interolate', True))
+                                              config.get('middleware').get('interpolate', True))
             else:
                 logging.error(f'Middleware "{config.get("middleware").get("type")}" not supported!')
                 gateway = None
