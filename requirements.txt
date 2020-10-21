@@ -5,3 +5,4 @@ humanfriendly
 requests
 PyYAML
 smbus
+construct
