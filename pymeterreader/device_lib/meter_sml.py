@@ -71,9 +71,7 @@ class SmlReader(BaseReader):
                                     bytesize=self.bytesize,
                                     parity=self.parity,
                                     stopbits=self.stopbits,
-                                    timeout=2,
-                                    xonxoff=0,
-                                    rtscts=0)
+                                    timeout=2)
                 timeout = time() + 10.0
                 buf = bytes()
                 while buf != self.__START_SEQ and time() < timeout:

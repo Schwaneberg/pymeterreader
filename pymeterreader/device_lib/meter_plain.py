@@ -54,7 +54,7 @@ class PlainReader(BaseReader):
                 ser = serial.Serial(self.tty_path,
                                     baudrate=self.initial_baudrate, bytesize=7,
                                     parity=serial.PARITY_EVEN, stopbits=1,
-                                    timeout=2, xonxoff=0, rtscts=0)
+                                    timeout=2)
 
                 # send wakeup string
                 if self.wakeup_zeros:
