@@ -38,7 +38,6 @@ class SmlReader(BaseReader):
         :stopbits: Number of stopbits (Default: 1)
         """
         try:
-            self.tty_path = None
             self.baudrate = int(kwargs.pop('baudrate', 9600))
             self.bytesize = int(kwargs.pop('bytesize', 8))
             self.stopbits = int(kwargs.pop('stopbits', 1))

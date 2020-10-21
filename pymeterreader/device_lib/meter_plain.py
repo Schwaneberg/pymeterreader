@@ -37,7 +37,6 @@ class PlainReader(BaseReader):
         self.wakeup_zeros = kwargs.get('send_wakeup_zeros', 40)
         self.initial_baudrate = kwargs.get('initial_baudrate', 300)
         self.baudrate = kwargs.get('baudrate', 2400)
-        self.tty_path = None
 
     def poll(self) -> tp.Optional[Sample]:
         """

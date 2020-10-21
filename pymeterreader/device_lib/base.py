@@ -26,25 +26,34 @@ class BaseReader(ABC):
         :param tty: Name or regex pattern of the tty node to use
         :kwargs: device specific parameters
         """
-        self._meter_id = meter_id
+        self.meter_id = meter_id
         self.tty_pattern = tty
-        self.tty_path = None
+        self._tty_path = None
         if kwargs:
             warning(f'Unknown parameter{"s" if len(kwargs) > 1 else ""}:'
                     f' {", ".join(kwargs.keys())}')
 
-    @property
-    def meter_id(self):
-        return self._meter_id
+    def __del__(self):
+        """
+        Set bound interface free
+        """
+        self.tty_path = None
 
-    @meter_id.setter
-    def meter_id(self, meter_id):
-        if self._meter_id is not None:
-            self.BOUND_INTERFACES.remove(self._meter_id)
-        if meter_id in self.BOUND_INTERFACES:
-            raise KeyError(f"{meter_id} already in use.")
-        self.BOUND_INTERFACES.add(meter_id)
-        self._meter_id = meter_id
+    @property
+    def tty_path(self):
+        return self._tty_path
+
+    @tty_path.setter
+    def tty_path(self, tty_path):
+        if self._tty_path is not None:
+            # Set current interface free
+            self.BOUND_INTERFACES.remove(self._tty_path)
+        if tty_path is not None:
+            # Claim new interface
+            if tty_path in self.BOUND_INTERFACES:
+                raise KeyError(f"{tty_path} already in use.")
+            self.BOUND_INTERFACES.add(tty_path)
+        self._tty_path = tty_path
 
     @abstractmethod
     def poll(self) -> tp.Optional[Sample]:
