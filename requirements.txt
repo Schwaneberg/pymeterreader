@@ -1,4 +1,3 @@
-numpy
 pysml>=0.0.2
 pyserial
 humanfriendly
