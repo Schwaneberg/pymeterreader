@@ -11,7 +11,7 @@ from yaml import load, FullLoader
 import typing as tp
 import humanfriendly
 import argparse
-from pymeterreader.device_lib import BaseReader, Sample, strip, SmlReader, PlainReader, Bme280Reader
+from pymeterreader.device_lib import BaseReader, Sample, strip, SmlReader, PlainReader
 from pymeterreader.gateway import *
 
 PARSER = argparse.ArgumentParser(description='MeterReader reads out supported devices '
@@ -253,6 +253,8 @@ def map_configuration(config: dict) -> tp.List[MeterReaderNode]:  # noqa MC0001
                     elif protocol == 'PLAIN':
                         reader = PlainReader(meter_id, **device)
                     elif protocol == 'BME280':
+                        # Import only on use since the smbus dependency can not be fulfilled on Windows
+                        from pymeterreader.device_lib.sensor_bme280 import Bme280Reader
                         reader = Bme280Reader(meter_id, **device)
                     else:
                         logging.error(f'Unsupported protocol {protocol}')
