@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from os import system
+from os import system, uname, geteuid
 from os.path import exists
 import logging
 from subprocess import run
@@ -154,7 +154,7 @@ setup(name=NAME,
           ]
       })
 
-if sys.argv[1] == 'bdist_wheel':
+if uname().sysname == 'Linux' and geteuid() == 0:
     register_systemd_service()
 else:
     info("Skipping service registration.")
