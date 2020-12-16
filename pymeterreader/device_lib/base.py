@@ -66,7 +66,7 @@ class BaseReader(ABC):
     @abstractmethod
     def poll(self) -> tp.Optional[Sample]:
         """
-        Poll the reader and retrievee a new sample
+        Poll the reader and retrieve a new sample
         :return: Sample, if successful else None
         """
         raise NotImplementedError("This is just an abstract class.")
