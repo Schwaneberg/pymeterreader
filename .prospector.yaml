@@ -4,6 +4,8 @@ pep8:
   disable:
     - N802
     - W503
+  options:
+    max-line-length: 120
 
 pyflakes:
   disable:
@@ -13,3 +15,5 @@ pylint:
   disable:
     - no-value-for-parameter
     - logging-fstring-interpolation
+  options:
+      max-line-length: 120

@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-from os import system, uname, geteuid
+from os import uname, geteuid
 from os.path import exists
+import subprocess
+import re
+import sys
 import logging
 from subprocess import run
 from setuptools import setup, find_packages
 from setuptools.command.install import install
-import subprocess
-import re
-import sys
 
 logging.basicConfig(level=logging.INFO)
 NAME = 'pymeterreader'
@@ -26,26 +26,17 @@ SERVICE_TEMPLATE = '[Unit]\n' \
                    '[Install]\n' \
                    'WantedBy=multi-user.target\n'
 
-LOG = []
-
-
-def info(msg):
-    LOG.append((lambda msg: system(f'echo "INFO {msg}"'), msg))
-
-
-def error(msg):
-    LOG.append((lambda msg: system(f'echo "ERROR {msg}"'), msg))
-
 
 class PostInstallCommand(install):
     """
     Post-installation for installation mode.
     Prints output from this script, but only in verbose mode
     """
+
     def run(self):
         install.run(self)
-        for log_fn, msg in LOG:
-            log_fn(msg)
+        if uname().sysname == 'Linux' and geteuid() == 0:
+            register_systemd_service()
 
 
 def update_version():
@@ -63,17 +54,17 @@ def update_version():
                 match = re.match(r'Version: (\d+.\d+.\d+)', line)
                 if match:
                     new_version = match[1]
-                    info(f"Read version {new_version} from PKG-INFO")
+                    print(f"Read version {new_version} from PKG-INFO")
                     break
             if match is None:
-                error("Cannot find version in PKG-INFO!")
+                print("Cannot find version in PKG-INFO!", file=sys.stderr)
     else:
-        error("Neither GIT nor VERSION file available!")
+        print("Neither GIT nor VERSION file available!", file=sys.stderr)
     return new_version
 
 
 def register_systemd_service():
-    info("Installing service")
+    print("Installing service")
     run('sudo systemctl stop pymeterreader',  # pylint: disable=subprocess-run-check
         universal_newlines=True,
         shell=True)
@@ -88,17 +79,18 @@ def register_systemd_service():
             universal_newlines=True,
             shell=True)
         if not exists('/etc/pymeterreader.yaml'):
-            info("Copy example configuration file to '/etc/pymeterreader.yaml'")
+            print("Copy example configuration file to '/etc/pymeterreader.yaml'")
             with open('example_configuration.yaml', 'r') as file:
                 example_config = file.read()
             with open('/etc/pymeterreader.yaml', 'w') as file:
                 file.write(example_config)
-        info("Registered pymeterreader as servicee.\n"
-             "Enable with 'sudo systemctl enable pymeterreader'\n."
-             "IMPORTANT: Create configuration file '/etc/pymeterreader.yaml'")
+        print("Registered pymeterreader as servicee.\n"
+              "Enable with 'sudo systemctl enable pymeterreader'\n."
+              "IMPORTANT: Create configuration file '/etc/pymeterreader.yaml'")
     except OSError as err:
         if isinstance(err, PermissionError):
-            error("Cannot write service file to /etc/systemd/system. Run as root (sudo) to solve this.")
+            print("Cannot write service file to /etc/systemd/system. Run as root (sudo) to solve this.",
+                  file=sys.stderr)
 
 
 def get_requirements():
@@ -107,7 +99,7 @@ def get_requirements():
     elif exists('PyMeterReader.egg-info/requires.txt'):
         file_name = 'PyMeterReader.egg-info/requires.txt'
     else:
-        error("Cannot find requirements.txt")
+        print("Cannot find requirements.txt", file=sys.stderr)
         sys.exit(2)
     requirements = []
     with open(file_name, 'r') as req_file:
@@ -136,7 +128,7 @@ setup(name=NAME,
       author_email='Oliver.Schwaneberg@gmail.com',
       license='BSD-2-Clause',
       entry_points={
-        'console_scripts': ['pymeterreader=pymeterreader:main']},
+          'console_scripts': ['pymeterreader=pymeterreader:main']},
       include_package_data=True,
       packages=find_packages('.'),
       data_files=[('.', ['example_configuration.yaml',
@@ -144,7 +136,7 @@ setup(name=NAME,
       install_requires=get_requirements(),
       test_suite='nose.collector',
       cmdclass={
-        'install': PostInstallCommand,
+          'install': PostInstallCommand,
       },
       extras_require=
       {
@@ -153,8 +145,3 @@ setup(name=NAME,
               'prospector'
           ]
       })
-
-if uname().sysname == 'Linux' and geteuid() == 0:
-    register_systemd_service()
-else:
-    info("Skipping service registration.")
