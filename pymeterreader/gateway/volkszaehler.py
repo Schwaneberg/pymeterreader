@@ -1,53 +1,35 @@
 """
 Uploader for the Volkszaehler middleware
 """
-from time import time
 import typing as tp
-import requests
 import json
+from time import time
 from contextlib import suppress
-from abc import ABC, abstractmethod
 from logging import error, debug, info
-
-
-class BaseGateway(ABC):
-    def __init__(self, url, interpolate):
-        """
-        Gateway base clas
-        :param url: address of middleware
-        :param interpolate: If true, hourly values will be interpolated and ushed
-        """
-        self.url = url
-        self.interpolate = interpolate
-
-    @abstractmethod
-    def post(self, uuid: str, value: tp.Union[int, float], timestamp: int) -> bool:
-        raise NotImplementedError("Abstract Base for POST")
-
-    @abstractmethod
-    def get(self, uuid: str) -> tp.Optional[tp.Tuple[int, tp.Union[int, float]]]:
-        raise NotImplementedError("Abstract Base for GET")
-
-    @abstractmethod
-    def get_channels(self) -> dict:
-        raise NotImplementedError("Abstract Base for get_channels")
+import requests
+from pymeterreader.gateway.basegateway import BaseGateway
 
 
 class VolkszaehlerGateway(BaseGateway):
     """
-    This class implements an uploader
-    to a Volkszahler midlleware server.
+    This class implements an uploader to a Volkszahler midlleware server.
     """
     DATA_PATH = "data"
     SUFFIX = ".json"
 
-    def __init__(self, url, interpolate=True):
-        super().__init__(url, interpolate)
+    def __init__(self, url: str, interpolate: bool = True):
+        """
+         Initialize Volkszaehler Gateway
+         :param url: address of middleware
+         :param interpolate: If true, hourly values will be interpolated and ushed
+         """
+        super().__init__()
+        self.url = url
+        self.interpolate = interpolate
 
     def post(self, uuid: str, value: tp.Union[int, float], timestamp: tp.Union[int, float]) -> bool:
         rest_url = self.urljoin(self.url, self.DATA_PATH, uuid, self.SUFFIX)
-        if isinstance(timestamp, float):
-            timestamp = int(timestamp * 1000)
+        timestamp = self.timestamp_to_int(timestamp)
         try:
             data = {"ts": timestamp, "value": value}
             response = requests.post(rest_url, data=data)
