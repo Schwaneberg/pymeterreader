@@ -43,23 +43,16 @@ COMP_PARAM_STRUCT = Struct('T1' / BytesInteger(2, False, True),
 
 class Bme280Reader(BaseReader):
     """
-    Polls meters with plain text output via
-    EN 62056-21:2002 compliant optical interfaces.
-    Tested with Landis+Gyr ULTRAHEAT T550 (UH50…)
-    See https://en.wikipedia.org/wiki/IEC_62056
+    Reads the Bosch BME280 using I2C
     """
     PROTOCOL = "BME280"
 
     __I2C_LOCK = Lock()
 
-    def __init__(self, meter_id: str, tty=r'/dev/ttyUSB\d+', **kwargs: int):
+    def __init__(self, meter_id: str, **kwargs: int):
         """
         Initialize BME280 Reader object
         :param meter_id: is a i2c bus id in this case
-        :param tty: Name or regex pattern of the tty node to use
-        :param send_wakeup_zeros: number of zeros to send ahead of the request string
-        :param initial_baudrate: Baudrate used to send the request
-        :param baudrate: Baudrate used to read the answer
         """
         # Test if smbus library has been imported
         try:
@@ -85,7 +78,7 @@ class Bme280Reader(BaseReader):
         elif meter_id >= 1024:
             error("Bme380Reader: Illegal I2C address defined. Default to 0x76.")
             meter_id = 0x76
-        super().__init__(meter_id, tty)
+        super().__init__(meter_id, **kwargs)
 
     def poll(self) -> tp.Optional[Sample]:
         """
