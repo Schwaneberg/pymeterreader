@@ -5,7 +5,7 @@ Created 2020.10.12 by Oliver Schwaneberg
 import typing as tp
 from abc import ABC, abstractmethod
 from logging import warning
-from pymeterreader.device_lib.common import Sample
+from pymeterreader.device_lib.common import Sample, Device
 
 
 class BaseReader(ABC):
@@ -32,6 +32,14 @@ class BaseReader(ABC):
         if kwargs:
             warning(f'Unknown parameter{"s" if len(kwargs) > 1 else ""}:'
                     f' {", ".join(kwargs.keys())}')
+
+    @staticmethod
+    def detect(devices: tp.List[Device], tty=r'/dev/ttyUSB\d+'):
+        """
+        Detect available devices at matching tty interfaces
+        :param devices: List of previously detected devices, that will be extended
+        :param tty: Regex to filter tty device nodes
+        """
 
     def __del__(self):
         """

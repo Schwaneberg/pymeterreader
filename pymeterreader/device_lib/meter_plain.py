@@ -9,7 +9,7 @@ import typing as tp
 import serial
 from threading import Lock
 from pymeterreader.device_lib.base import BaseReader
-from pymeterreader.device_lib.common import Sample, strip
+from pymeterreader.device_lib.common import Sample, Device, strip
 
 
 class PlainReader(BaseReader):
@@ -49,33 +49,45 @@ class PlainReader(BaseReader):
                 return sample
             error("This reader could not be bound to any device node!")
             return None
+        response = self.__get_response(self.tty_path,
+                                       initial_baudrate=self.initial_baudrate,
+                                       baudrate=self.baudrate,
+                                       wakeup_zeros=self.wakeup_zeros)
+        if response:
+            sample = self.__parse(response)
+            return sample if sample.meter_id is not None else None
+        return None
+
+    @staticmethod
+    def __get_response(tty, initial_baudrate: int = 300, baudrate: int = 9600, bytesize: int = 7,
+                       parity: str = 'N', stopbits: int = 1, wakeup_zeros: int = 40) -> tp.Optional[str]:
+        # pylint: disable=too-many-arguments
         try:
-            with self.__SERIAL_LOCK:
-                ser = serial.Serial(self.tty_path,
-                                    baudrate=self.initial_baudrate, bytesize=7,
-                                    parity=serial.PARITY_EVEN, stopbits=1,
+            with PlainReader.__SERIAL_LOCK:
+                ser = serial.Serial(tty,
+                                    baudrate=initial_baudrate, bytesize=bytesize,
+                                    parity=parity, stopbits=stopbits,
                                     timeout=2)
 
                 # send wakeup string
-                if self.wakeup_zeros:
-                    ser.write(b"\x00" * self.wakeup_zeros)
+                if wakeup_zeros:
+                    ser.write(b"\x00" * wakeup_zeros)
 
                 # send request message
-                ser.write(self.__START_SEQ)
+                ser.write(PlainReader.__START_SEQ)
                 ser.flush()
 
                 # read identification message
                 init_msg = ser.readline()
 
                 # change baudrate
-                ser.baudrate = self.baudrate
+                ser.baudrate = baudrate
                 response = ser.readline().decode('utf-8')
                 ser.close()
             debug(f'Plain response: ({init_msg.decode("utf-8")})"{response}"')
-            sample = self.__parse(response)
-            return sample if sample.meter_id is not None else None
+            return response
         except OSError as err:
-            error(f'Exception occurred while accessing accessing {self.tty_path}: {err}')
+            error(f'Exception occurred while accessing accessing {tty}: {err}')
         return None
 
     def __probe(self) -> tp.Optional[Sample]:
@@ -99,11 +111,32 @@ class PlainReader(BaseReader):
               f"while scanning {', '.join(potential_ttys)}.")
         return None
 
+    @staticmethod
+    def detect(devices: tp.List[Device], tty=r'/dev/ttyUSB\d+'):
+        sp = os.path.sep
+        used_interfaces = [device.tty for device in devices]
+        potential_ttys = [f'{sp}dev{sp}{file_name}'
+                          for file_name in os.listdir(f'{sp}dev{sp}')
+                          if re.match(tty, file_name)
+                          and f'{sp}dev{sp}{file_name}' not in used_interfaces]
+        for tty_path in potential_ttys:
+            response = PlainReader.__get_response(tty_path)
+            entries = {}
+            for ident, value, unit in re.findall(r"([\d.]+)\(([\d.]+)\*?([\w\d.]+)?\)", response):
+                if not unit:
+                    entries["identifier"] = value
+                else:
+                    entries[ident] = (value, unit)
+            if 'identifier' in entries:
+                device = Device(entries.pop("identifier"),
+                                tty_path,
+                                entries)
+                devices.append(device)
+
     def __parse(self, response) -> Sample:
         """
         Internal helper to extract relevant information
         :param sml_frame: sml data from parser
-        :param parsed: only for recursive object reference forwarding
         """
         parsed = Sample()
         for ident, value, unit in re.findall(r"([\d.]+)\(([\d.]+)\*?([\w\d.]+)?\)", response):
