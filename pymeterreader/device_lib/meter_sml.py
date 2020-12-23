@@ -124,7 +124,7 @@ class SmlReader(BaseReader):
         return None
 
     @staticmethod
-    def detect(devices: tp.List[Device], tty=r'/dev/ttyUSB\d+'):
+    def detect(devices: tp.List[Device], tty=r'ttyUSB\d+'):
         """
         Detects all SML devices available at matching tty interfa
         :param devices: List of previously detected devices, that will be extendedces

@@ -95,7 +95,7 @@ class PlainReader(BaseReader):
         potential_ttys = [f'{sp}dev{sp}{file_name}'
                           for file_name in os.listdir(f'{sp}dev{sp}')
                           if re.match(self.tty_pattern, file_name)
-                          and file_name not in self.BOUND_INTERFACES]
+                          and f'{sp}dev{sp}{file_name}' not in self.BOUND_INTERFACES]
         if not potential_ttys:
             error(f"Could not find any interfaces matching r'{self.tty_pattern}'!")
             return None
@@ -112,7 +112,7 @@ class PlainReader(BaseReader):
         return None
 
     @staticmethod
-    def detect(devices: tp.List[Device], tty=r'/dev/ttyUSB\d+'):
+    def detect(devices: tp.List[Device], tty=r'ttyUSB\d+'):
         sp = os.path.sep
         used_interfaces = [device.tty for device in devices]
         potential_ttys = [f'{sp}dev{sp}{file_name}'
