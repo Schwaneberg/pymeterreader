@@ -151,7 +151,7 @@ class SmlReader(BaseReader):
                           and f'{sp}dev{sp}{file_name}' not in used_interfaces]
         for tty_path in potential_ttys:
             frame = SmlReader.__read_frame(tty_path)
-            if len(frame) > 1:
+            if frame is not None and len(frame) > 1:
                 entries = {}
                 walk_frame(frame, entries)
                 if 'identifier' in entries:
