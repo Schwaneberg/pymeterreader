@@ -84,6 +84,22 @@ class VolkszaehlerGateway(BaseGateway):
                 return time_stamp, value
         return None
 
+    def get_channels(self) -> dict:
+        """
+        Retrieve a dict of channels from the middleware
+        """
+        rest_url = self.urljoin(self.url, 'channel.json')
+        try:
+            response = requests.get(rest_url)
+            if response.status_code != 200:
+                error(f'GET from {rest_url}: {response}')
+            else:
+                debug(f'GET from {rest_url}: {response}')
+                return json.loads(response.content)['channels']
+        except OSError as err:
+            error(f'Error during GET: {err}')
+            return {}
+
     @staticmethod
     def urljoin(*args):
         url = '/'.join([arg.strip('/') for arg in args])
