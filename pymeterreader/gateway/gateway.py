@@ -28,6 +28,10 @@ class BaseGateway(ABC):
     def get(self, uuid: str) -> tp.Optional[tp.Tuple[int, tp.Union[int, float]]]:
         raise NotImplementedError("Abstract Base for GET")
 
+    @abstractmethod
+    def get_channels(self) -> dict:
+        raise NotImplementedError("Abstract Base for get_channels")
+
 
 class VolkszaehlerGateway(BaseGateway):
     """
