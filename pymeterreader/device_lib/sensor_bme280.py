@@ -199,9 +199,9 @@ class Bme280Reader(BaseReader):
     def detect(devices: tp.List[Device], tty=r'/dev/ttyUSB\d+'):
         del tty
         addresses = ['0x76', '0x77']
-        results = []
         for address in addresses:
             channels = Bme280Reader(address).poll().channels
             if channels:
-                results.append(Device(address, channels=channels))
-        devices.extend(results)
+                channels_dict = {channel['objName']: (channel['value'], channel['unit'])
+                                 for channel in channels}
+                devices.append(Device(address, channels=channels_dict))
