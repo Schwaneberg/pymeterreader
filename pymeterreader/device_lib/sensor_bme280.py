@@ -200,5 +200,5 @@ class Bme280Reader(BaseReader):
         del tty
         addresses = ['0x76', '0x77']
         results = [Device("BME280", address) for address in addresses
-                   if Bme280Reader(address).poll().meter_id is not None]
+                   if Bme280Reader(address).poll().channels]
         devices.extend(results)

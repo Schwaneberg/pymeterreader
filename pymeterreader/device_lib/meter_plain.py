@@ -59,7 +59,7 @@ class PlainReader(BaseReader):
         return None
 
     @staticmethod
-    def __get_response(tty, initial_baudrate: int = 300, baudrate: int = 9600, bytesize: int = 7,
+    def __get_response(tty, initial_baudrate: int = 300, baudrate: int = 2400, bytesize: int = 7,
                        parity: str = 'E', stopbits: int = 1, wakeup_zeros: int = 40) -> tp.Optional[str]:
         # pylint: disable=too-many-arguments
         try:
