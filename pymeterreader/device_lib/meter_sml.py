@@ -138,9 +138,9 @@ class SmlReader(BaseReader):
                 if 'messageBody' in sml_frame:
                     var_list = sml_frame['messageBody'].get('valList', [])
                     for variable in var_list:
-                        if 'unit' not in variable:
+                        if 'unit' not in variable and 12 < len(variable.get('value')) < 32:
                             entries["identifier"] = variable.get('value')
-                        else:
+                        elif 'unit' in variable:
                             entries[variable['objName']] = (variable['value'], variable['unit'])
 
         sp = os.path.sep

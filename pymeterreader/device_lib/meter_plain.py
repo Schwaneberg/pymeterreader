@@ -60,7 +60,7 @@ class PlainReader(BaseReader):
 
     @staticmethod
     def __get_response(tty, initial_baudrate: int = 300, baudrate: int = 9600, bytesize: int = 7,
-                       parity: str = 'N', stopbits: int = 1, wakeup_zeros: int = 40) -> tp.Optional[str]:
+                       parity: str = 'E', stopbits: int = 1, wakeup_zeros: int = 40) -> tp.Optional[str]:
         # pylint: disable=too-many-arguments
         try:
             with PlainReader.__SERIAL_LOCK:

@@ -91,7 +91,6 @@ class Wizard:
     def __map_channel(self, meter, channel):
         def assign_channel(uuid: str):
             self.channel_mapping[uuid] = (meter, channel)
-        value, unit = meter[channel]
         map_menu = CursesMenu(f"Channel selection for {channel} at meter {meter.identifier}", "Select a channel")
         for gateway_channel in self.gateway_channels:
             if gateway_channel.get('uuid') not in self.channel_mapping:
