@@ -5,6 +5,7 @@ import re
 from cursesmenu import *
 from cursesmenu.items import *
 from pymeterreader.gateway import VolkszaehlerGateway
+from pymeterreader.device_lib import Device
 from pymeterreader.wizard.detector import detect
 
 
@@ -13,6 +14,7 @@ class Wizard:
         self.url = "http://localhost/middleware.php"
         self.gateway = None
         self.gateway_channels = {}
+        self.channel_mapping = {}
         self.menu = None
         print("Detecting meters...")
         self.available_meters = detect()
@@ -46,20 +48,57 @@ class Wizard:
         self.menu = CursesMenu("PyMeterReader Configuration Wizard", "Choose item to configure")
 
         function_item = FunctionItem("Volkszähler Gateway", self.input_gw, ["Enter URL: "])
-
-        # A SelectionMenu constructs a menu from a list of strings
-        selection_menu = SelectionMenu(["item1", "item2", "item3"])
-
-        # A SubmenuItem lets you add a menu (the selection_menu above, for example)
-        # as a submenu of another menu
-        submenu_item = SubmenuItem("Submenu item", selection_menu, self.menu)
-
-        # Once we're done creating them, we just add the items to the menu
         self.menu.append_item(function_item)
-        self.menu.append_item(submenu_item)
 
-        # Finally, we call show to show the menu and allow the user to interact
+        for meter in self.available_meters:
+            meter_menu = CursesMenu(f"Connect channels for meter {meter.identifier} at {meter.tty}", "By channel")
+            for channel, value in meter.channels.items():
+                meter_menu.append_item(FunctionItem(f"{channel}: {value[0]} {value[1]}",
+                                                    self.__map_channel,
+                                                    [meter, channel]))
+            submenu_item = SubmenuItem(f"Meter {meter.identifier}", meter_menu, self.menu)
+
+            self.menu.append_item(submenu_item)
+
+        view_item = FunctionItem("View current mapping", self.__view_mapping)
+        self.menu.append_item(view_item)
+
+        save_item = FunctionItem("Save current mapping", self.__safe_mapping)
+        self.menu.append_item(save_item)
+
+        reset_item = FunctionItem("Reset all mappings", self.channel_mapping.clear)
+        self.menu.append_item(reset_item)
+
         self.menu.show()
+
+    def __safe_mapping(self):
+        self.menu.stdscr.clear()
+        # TODO YAML generator
+        self.menu.stdscr.addstr(0, 0, "Saved to /etc/pymeterreader.yaml")
+        self.menu.stdscr.addstr(1, 0, "(press any key)")
+        self.menu.stdscr.getkey()
+
+    def __view_mapping(self):
+        self.menu.stdscr.clear()
+        self.menu.stdscr.addstr(0, 0, "Mapped channels:")
+        row = 2
+        for uuid, value in self.channel_mapping.items():
+            self.menu.stdscr.addstr(row, 2, f"{uuid} mapped to {value[0].identifier}: {value[1]}")
+            row += 1
+        self.menu.stdscr.addstr(row, 0, "(press any key)")
+        self.menu.stdscr.getkey()
+
+    def __map_channel(self, meter, channel):
+        def assign_channel(uuid: str):
+            self.channel_mapping[uuid] = (meter, channel)
+        value, unit = meter[channel]
+        map_menu = CursesMenu(f"Channel selection for {channel} at meter {meter.identifier}", "Select a channel")
+        for gateway_channel in self.gateway_channels:
+            if gateway_channel.get('uuid') not in self.channel_mapping:
+                menu_item = FunctionItem(f"{gateway_channel.get('uuid')}: {gateway_channel.get('title')}",
+                                         assign_channel, [gateway_channel.get('uuid')])
+                map_menu.append_item(menu_item)
+        map_menu.show()
 
 
 if __name__ == '__main__':

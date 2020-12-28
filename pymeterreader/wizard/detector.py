@@ -1,10 +1,11 @@
 """
 Detect and present meters.
 """
-from pymeterreader.device_lib import SmlReader, PlainReader, Bme280Reader
+import typing as tp
+from pymeterreader.device_lib import SmlReader, PlainReader, Bme280Reader, Device
 
 
-def detect():
+def detect() -> tp.List[Device]:
     """
     Calls all detectors and returns a list of available devices.
     """
