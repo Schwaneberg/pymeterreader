@@ -5,7 +5,7 @@ import re
 from cursesmenu import *
 from cursesmenu.items import *
 from pymeterreader.gateway import VolkszaehlerGateway
-from pymeterreader.device_lib import Device
+from pymeterreader.wizard.generator import generate_yaml
 from pymeterreader.wizard.detector import detect
 
 
@@ -14,10 +14,9 @@ class Wizard:
         self.url = "http://localhost/middleware.php"
         self.gateway = None
         self.gateway_channels = {}
-        self.channel_mapping = {}
         self.menu = None
         print("Detecting meters...")
-        self.available_meters = detect()
+        self.meters = detect()
         self.create_menu()
 
     def input_gw(self, text):
@@ -50,12 +49,16 @@ class Wizard:
         function_item = FunctionItem("Volkszähler Gateway", self.input_gw, ["Enter URL: "])
         self.menu.append_item(function_item)
 
-        for meter in self.available_meters:
+        for meter in self.meters:
             meter_menu = CursesMenu(f"Connect channels for meter {meter.identifier} at {meter.tty}", "By channel")
             for channel, value in meter.channels.items():
-                meter_menu.append_item(FunctionItem(f"{channel}: {value[0]} {value[1]}",
-                                                    self.__map_channel,
-                                                    [meter, channel]))
+                map_menu = CursesMenu(f"Choose uuid for f{channel}")
+                for choice in self.gateway_channels:
+                    map_menu.append_item(FunctionItem(f"{choice['uuid']: content['title']}",
+                                                      self.__assign, [meter, channel, choice['uuid']]))
+                map_menu.append_item(FunctionItem("Enter private UUID",
+                                                  self.__assign, [meter, channel, None]))
+                meter_menu.append_item(SubmenuItem(f"{channel}: {value[0]} {value[1]}", map_menu))
             submenu_item = SubmenuItem(f"Meter {meter.identifier}", meter_menu, self.menu)
 
             self.menu.append_item(submenu_item)
@@ -66,15 +69,26 @@ class Wizard:
         save_item = FunctionItem("Save current mapping", self.__safe_mapping)
         self.menu.append_item(save_item)
 
-        reset_item = FunctionItem("Reset all mappings", self.channel_mapping.clear)
+        reset_item = FunctionItem("Reset all mappings", self.__clear)
         self.menu.append_item(reset_item)
 
         self.menu.show()
 
+    def __clear(self):
+        for meter in self.meters:
+            for channel in meter.channels.values():
+                if 'uuid' in channel:
+                    channel.pop('uuid')
+
     def __safe_mapping(self):
         self.menu.stdscr.clear()
-        # TODO YAML generator
-        self.menu.stdscr.addstr(0, 0, "Saved to /etc/pymeterreader.yaml")
+        result = generate_yaml(self.meters, self.url)
+        try:
+            with open('/etc/pymeterreader.yaml', 'w') as config_file:
+                config_file.write(result)
+            self.menu.stdscr.addstr(0, 0, "Saved to /etc/pymeterreader.yaml")
+        except PermissionError:
+            self.menu.stdscr.addstr(0, 0, "Insufficient permissions: cannot write to /etc/pymeterreader.yaml")
         self.menu.stdscr.addstr(1, 0, "(press any key)")
         self.menu.stdscr.getkey()
 
@@ -82,22 +96,18 @@ class Wizard:
         self.menu.stdscr.clear()
         self.menu.stdscr.addstr(0, 0, "Mapped channels:")
         row = 2
-        for uuid, value in self.channel_mapping.items():
-            self.menu.stdscr.addstr(row, 2, f"{uuid} mapped to {value[0].identifier}: {value[1]}")
-            row += 1
+        for meter in self.meters:
+            for channel, content in meter.channels.items():
+                if 'uuid' in content:
+                    self.menu.stdscr.addstr(row, 2, f"{content['uuid']} mapped to {channel}")
+                    row += 1
         self.menu.stdscr.addstr(row, 0, "(press any key)")
         self.menu.stdscr.getkey()
 
-    def __map_channel(self, meter, channel):
-        def assign_channel(uuid: str):
-            self.channel_mapping[uuid] = (meter, channel)
-        map_menu = CursesMenu(f"Channel selection for {channel} at meter {meter.identifier}", "Select a channel")
-        for gateway_channel in self.gateway_channels:
-            if gateway_channel.get('uuid') not in self.channel_mapping:
-                menu_item = FunctionItem(f"{gateway_channel.get('uuid')}: {gateway_channel.get('title')}",
-                                         assign_channel, [gateway_channel.get('uuid')])
-                map_menu.append_item(menu_item)
-        map_menu.show()
+    def __assign(self, meter, channel, uuid):
+        if uuid is None:
+            uuid = input("Enter private UUID: ")
+        meter[channel]['uuid'] = uuid
 
 
 if __name__ == '__main__':

@@ -199,6 +199,6 @@ class Bme280Reader(BaseReader):
     def detect(devices: tp.List[Device], tty=r'/dev/ttyUSB\d+'):
         del tty
         addresses = ['0x76', '0x77']
-        results = [Device("BME280", address) for address in addresses
+        results = [Device(address) for address in addresses
                    if Bme280Reader(address).poll().channels]
         devices.extend(results)
