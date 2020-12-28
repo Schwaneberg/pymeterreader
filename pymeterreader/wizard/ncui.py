@@ -56,7 +56,7 @@ class Wizard:
             for channel, value in meter.channels.items():
                 map_menu = CursesMenu(f"Choose uuid for f{channel}")
                 for choice in self.gateway_channels:
-                    map_menu.append_item(FunctionItem(f"{choice['uuid']: content['title']}",
+                    map_menu.append_item(FunctionItem(f"{choice['uuid']}: {choice['title']}",
                                                       self.__assign, [meter, channel, choice['uuid']]))
                 map_menu.append_item(FunctionItem("Enter private UUID",
                                                   self.__assign, [meter, channel, None]))
