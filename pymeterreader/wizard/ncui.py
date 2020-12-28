@@ -17,11 +17,16 @@ class Wizard:
         self.menu = None
         print("Detecting meters...")
         self.meters = detect()
-        self.create_menu()
+        self.restart_ui = True
+        while self.restart_ui:
+            self.restart_ui = False
+            self.create_menu()
 
     def input_gw(self, text):
         def is_valid_url():
             return re.match(r"^https?://[/\w\d.]+.php$", self.url)
+        self.restart_ui = True
+        self.menu.clear_screen()
         self.url = "invalid"
         while self.url and not is_valid_url():
             self.url = input(text)
@@ -41,14 +46,12 @@ class Wizard:
         else:
             self.menu.stdscr.addstr(3, 0, f"Unable to find any public channels at '{self.url}'.")
         self.menu.stdscr.getkey()
-        self.menu.exit()
-        self.create_menu()
 
     def create_menu(self):
         # Create the menu
         self.menu = CursesMenu("PyMeterReader Configuration Wizard", "Choose item to configure")
 
-        function_item = FunctionItem("Volkszähler Gateway", self.input_gw, ["Enter URL: "])
+        function_item = FunctionItem("Volkszähler Gateway", self.input_gw, ["Enter URL: "], should_exit=True)
         self.menu.append_item(function_item)
 
         for meter in self.meters:
