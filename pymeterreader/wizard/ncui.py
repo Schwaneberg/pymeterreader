@@ -12,8 +12,8 @@ from pymeterreader.wizard.detector import detect
 class Wizard:
     def __init__(self):
         self.url = "http://localhost/middleware.php"
-        self.gateway = None
-        self.gateway_channels = {}
+        self.gateway = VolkszaehlerGateway(self.url)
+        self.gateway_channels = self.gateway.get_channels()
         self.menu = None
         print("Detecting meters...")
         self.meters = detect()
@@ -41,6 +41,8 @@ class Wizard:
         else:
             self.menu.stdscr.addstr(3, 0, f"Unable to find any public channels at '{self.url}'.")
         self.menu.stdscr.getkey()
+        self.menu.exit()
+        self.create_menu()
 
     def create_menu(self):
         # Create the menu
@@ -58,7 +60,7 @@ class Wizard:
                                                       self.__assign, [meter, channel, choice['uuid']]))
                 map_menu.append_item(FunctionItem("Enter private UUID",
                                                   self.__assign, [meter, channel, None]))
-                meter_menu.append_item(SubmenuItem(f"{channel}: {value[0]} {value[1]}", map_menu))
+                meter_menu.append_item(SubmenuItem(f"{channel}: {value[0]} {value[1]}", map_menu, self.menu))
             submenu_item = SubmenuItem(f"Meter {meter.identifier}", meter_menu, self.menu)
 
             self.menu.append_item(submenu_item)
@@ -81,7 +83,7 @@ class Wizard:
                     channel.pop('uuid')
 
     def __safe_mapping(self):
-        self.menu.stdscr.clear()
+        self.menu.clear_screen()
         result = generate_yaml(self.meters, self.url)
         try:
             with open('/etc/pymeterreader.yaml', 'w') as config_file:
@@ -93,7 +95,7 @@ class Wizard:
         self.menu.stdscr.getkey()
 
     def __view_mapping(self):
-        self.menu.stdscr.clear()
+        self.menu.clear_screen()
         self.menu.stdscr.addstr(0, 0, "Mapped channels:")
         row = 2
         for meter in self.meters:
@@ -106,6 +108,7 @@ class Wizard:
 
     def __assign(self, meter, channel, uuid):
         if uuid is None:
+            self.menu.clear_screen()
             uuid = input("Enter private UUID: ")
         meter[channel]['uuid'] = uuid
 
