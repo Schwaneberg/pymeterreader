@@ -22,10 +22,11 @@ class Device:
     """
     Representation of a device
     """
-    def __init__(self, identifier: str = "", tty: str = "",
+    def __init__(self, identifier: str = "", tty: str = "", protocol: str = "",
                  channels: tp.Optional[tp.Dict[str, tp.Tuple[str, str]]] = None):
         self.identifier = identifier
         self.tty = tty
+        self.protocol = protocol
         self.channels = channels if channels is not None else {}
 
 

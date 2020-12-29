@@ -157,6 +157,7 @@ class SmlReader(BaseReader):
                 if 'identifier' in entries:
                     device = Device(entries.pop("identifier"),
                                     tty_path,
+                                    'sml',
                                     entries)
                     devices.append(device)
 

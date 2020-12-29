@@ -1,23 +1,25 @@
 import yaml
-import typing as tp
-from pymeterreader.device_lib.common import Device
 
 
-def generate_yaml(devices: tp.List[Device], url: str):
+SERVICE_TEMPLATE = '[Unit]\n' \
+                   'Description=pymeterreader\n' \
+                   'After=network.target\n' \
+                   'StartLimitIntervalSec=0\n' \
+                   '\n' \
+                   '[Service]\n' \
+                   'Type=simple\n' \
+                   'Restart=always\n' \
+                   'RestartSec=5\n' \
+                   'User=root\n' \
+                   'ExecStart={}\n' \
+                   '\n' \
+                   '[Install]\n' \
+                   'WantedBy=multi-user.target\n'
+
+
+def generate_yaml(devices: dict, url: str):
     config = {'middleware': {'type': 'volkszahler',
                              'middleware_url': url,
                              'interpolate': False},
-              'devices': {}}
-
-    for device in devices:
-        if any('uuid' in channel for channel in device.channels.values()):
-            config[device.identifier] = {'id': device.identifier}
-            if device.tty:
-                config[device.identifier]['tty'] = device.tty
-            channels = {}
-            for channel, content in device.channels.items():
-                if 'uuid' in content:
-                    channels[channel] = {'uuid': content['uuid'],
-                                         'interval': content['interval']}
-            config[device.identifier]['channels'] = channels
+              'devices': devices}
     return yaml.dump(config, Dumper=yaml.SafeDumper)

@@ -197,6 +197,10 @@ class Bme280Reader(BaseReader):
 
     @staticmethod
     def detect(devices: tp.List[Device], tty=r'/dev/ttyUSB\d+'):
+        """
+        Add available devices to list
+        :param devices: list of available devices
+        """
         del tty
         addresses = ['0x76', '0x77']
         for address in addresses:
@@ -204,4 +208,6 @@ class Bme280Reader(BaseReader):
             if channels:
                 channels_dict = {channel['objName']: (channel['value'], channel['unit'])
                                  for channel in channels}
-                devices.append(Device(address, channels=channels_dict))
+                devices.append(Device(address,
+                                      protocol='BME280',
+                                      channels=channels_dict))

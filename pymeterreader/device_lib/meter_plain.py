@@ -130,6 +130,7 @@ class PlainReader(BaseReader):
             if 'identifier' in entries:
                 device = Device(entries.pop("identifier"),
                                 tty_path,
+                                'plain',
                                 entries)
                 devices.append(device)
 
