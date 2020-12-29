@@ -66,7 +66,7 @@ class SmlReader(BaseReader):
             return None
         frame = self.__read_frame(self.tty_path, self.baudrate, self.bytesize,
                                   self.parity, self.stopbits)
-        if len(frame) > 1:
+        if frame is not None and len(frame) > 1:
             sample = self.__parse(frame[1])
             if sample.meter_id is not None:
                 return sample
