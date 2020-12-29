@@ -1,27 +1,13 @@
 #!/usr/bin/env python3
-from os import uname, geteuid
 from os.path import exists
 import subprocess
 import re
 import sys
 import logging
 from setuptools import setup, find_packages
-from setuptools.command.install import install
 
 logging.basicConfig(level=logging.INFO)
 NAME = 'pymeterreader'
-
-
-class PostInstallCommand(install):
-    """
-    Post-installation for installation mode.
-    Prints output from this script, but only in verbose mode
-    """
-
-    def run(self):
-        install.run(self)
-        if uname().sysname == 'Linux' and geteuid() == 0:
-            register_systemd_service()
 
 
 def update_version():
@@ -91,9 +77,6 @@ setup(name=NAME,
                          'requirements.txt'])],
       install_requires=get_requirements(),
       test_suite='nose.collector',
-      cmdclass={
-          'install': PostInstallCommand,
-      },
       extras_require=
       {
           'test': [
