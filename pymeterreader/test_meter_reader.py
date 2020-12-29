@@ -37,6 +37,9 @@ class MockedGateway(BaseGateway):
     def get(self, uuid):
         return None
 
+    def get_channels(self) -> dict:
+        return {}
+
 
 class MockedReader():
     def __init__(self, sample):

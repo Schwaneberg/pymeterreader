@@ -11,7 +11,7 @@ from yaml import load, FullLoader
 import typing as tp
 import humanfriendly
 import argparse
-from pymeterreader.device_lib import *
+from pymeterreader.device_lib import BaseReader, Sample, strip, SmlReader, PlainReader, Bme280Reader
 from pymeterreader.gateway import *
 
 PARSER = argparse.ArgumentParser(description='MeterReader reads out supported devices '

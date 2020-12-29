@@ -11,7 +11,7 @@ from threading import Lock
 import smbus
 from construct import Struct, BytesInteger, BitStruct, BitsInteger
 from pymeterreader.device_lib.base import BaseReader
-from pymeterreader.device_lib.common import Sample
+from pymeterreader.device_lib.common import Sample, Device
 
 AUX_STRUCT = BitStruct('H4' / BitsInteger(12, True), 'H5' / BitsInteger(12, True))
 COMP_PARAM_STRUCT = Struct('T1' / BytesInteger(2, False, True),
@@ -194,3 +194,20 @@ class Bme280Reader(BaseReader):
             else:
                 error(f"Bme280Reader: Cannot detect BME280 at add {self.meter_id:02x}")
         return None
+
+    @staticmethod
+    def detect(devices: tp.List[Device], tty=r'/dev/ttyUSB\d+'):
+        """
+        Add available devices to list
+        :param devices: list of available devices
+        """
+        del tty
+        addresses = ['0x76', '0x77']
+        for address in addresses:
+            channels = Bme280Reader(address).poll().channels
+            if channels:
+                channels_dict = {channel['objName']: (channel['value'], channel['unit'])
+                                 for channel in channels}
+                devices.append(Device(address,
+                                      protocol='BME280',
+                                      channels=channels_dict))

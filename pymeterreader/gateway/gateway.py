@@ -28,6 +28,10 @@ class BaseGateway(ABC):
     def get(self, uuid: str) -> tp.Optional[tp.Tuple[int, tp.Union[int, float]]]:
         raise NotImplementedError("Abstract Base for GET")
 
+    @abstractmethod
+    def get_channels(self) -> dict:
+        raise NotImplementedError("Abstract Base for get_channels")
+
 
 class VolkszaehlerGateway(BaseGateway):
     """
@@ -83,6 +87,22 @@ class VolkszaehlerGateway(BaseGateway):
                 info(f"GET {uuid} returned timestamp={time_stamp * 1000} value={value}")
                 return time_stamp, value
         return None
+
+    def get_channels(self) -> dict:
+        """
+        Retrieve a dict of channels from the middleware
+        """
+        rest_url = self.urljoin(self.url, 'channel.json')
+        try:
+            response = requests.get(rest_url)
+            if response.status_code != 200:
+                error(f'GET from {rest_url}: {response}')
+            else:
+                debug(f'GET from {rest_url}: {response}')
+                return json.loads(response.content)['channels']
+        except OSError as err:
+            error(f'Error during GET: {err}')
+        return {}
 
     @staticmethod
     def urljoin(*args):

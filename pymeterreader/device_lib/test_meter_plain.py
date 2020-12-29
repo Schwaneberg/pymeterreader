@@ -1,5 +1,6 @@
 import unittest
 from unittest import mock
+from pymeterreader.device_lib.common import Device
 from pymeterreader.device_lib.meter_plain import PlainReader
 
 START_SEQ = b'\x1b\x1b\x1b\x1b\x01\x01\x01\x01'
@@ -66,6 +67,20 @@ class TestSmlMeters(unittest.TestCase):
         self.assertIsNone(sml_meter.tty_path)
         self.assertEqual(1, mserial.close_called)
         self.assertEqual(40 * b'\00' + b"/?!\x0D\x0A", mserial.written)
+
+    @mock.patch('pymeterreader.device_lib.meter_sml.os.listdir', autospec=True)
+    @mock.patch('pymeterreader.device_lib.meter_plain.serial', autospec=True)
+    def test_detect(self, mock_serial, mock_listdir):
+        mserial = MockSerial(b'', [b'\x00', TEST_FRAME])
+        mock_serial.Serial.return_value = mserial
+        mock_listdir.return_value = ['ttyUSB0']
+        devices = [Device("dummy")]
+        PlainReader.detect(devices)
+        self.assertEqual(devices[0].identifier, 'dummy')
+        self.assertEqual(devices[1].identifier, '99999999')
+        self.assertIn('6.8', devices[1].channels)
+        self.assertIn('6.26', devices[1].channels)
+        self.assertEqual('/dev/ttyUSB0', devices[1].tty)
 
 
 if __name__ == '__main__':
