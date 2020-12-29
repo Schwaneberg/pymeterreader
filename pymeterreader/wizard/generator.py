@@ -18,7 +18,7 @@ SERVICE_TEMPLATE = '[Unit]\n' \
 
 
 def generate_yaml(devices: dict, url: str):
-    config = {'middleware': {'type': 'volkszahler',
+    config = {'middleware': {'type': 'volkszaehler',
                              'middleware_url': url,
                              'interpolate': False},
               'devices': devices}

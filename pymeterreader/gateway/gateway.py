@@ -102,7 +102,7 @@ class VolkszaehlerGateway(BaseGateway):
                 return json.loads(response.content)['channels']
         except OSError as err:
             error(f'Error during GET: {err}')
-            return {}
+        return {}
 
     @staticmethod
     def urljoin(*args):

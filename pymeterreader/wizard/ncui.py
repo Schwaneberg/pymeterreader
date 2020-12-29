@@ -2,11 +2,10 @@
 Curses setup wizard
 """
 import re
-import sys
 from os.path import exists
 from subprocess import run
-from cursesmenu import *
-from cursesmenu.items import *
+from cursesmenu import CursesMenu
+from cursesmenu.items import FunctionItem, SubmenuItem
 from pymeterreader.device_lib.common import Device
 from pymeterreader.gateway import VolkszaehlerGateway
 from pymeterreader.wizard.generator import generate_yaml, SERVICE_TEMPLATE
@@ -41,7 +40,7 @@ class Wizard:
                 self.menu.stdscr.getkey()
             elif not is_valid_url():
                 self.menu.stdscr.addstr(3, 0, "Entered url is not valid."
-                                        f" It must start with 'http://' or 'https://' and end with '.php'")
+                                        " It must start with 'http://' or 'https://' and end with '.php'")
                 self.menu.stdscr.getkey()
         self.gateway = VolkszaehlerGateway(self.url)
         self.gateway_channels = self.gateway.get_channels()
@@ -62,12 +61,14 @@ class Wizard:
         for meter in self.meters:
             meter_menu = CursesMenu(f"Connect channels for meter {meter.identifier} at {meter.tty}", "By channel")
             for channel, value in meter.channels.items():
-                map_menu = CursesMenu(f"Choose uuid for f{channel}")
+                map_menu = CursesMenu(f"Choose uuid for {channel}")
                 for choice in self.gateway_channels:
                     map_menu.append_item(FunctionItem(f"{choice['uuid']}: {choice['title']}",
-                                                      self.__assign, [meter, channel, choice['uuid']]))
+                                                      self.__assign, [meter, channel, choice['uuid'], '30m'],
+                                                      should_exit=True))
                 map_menu.append_item(FunctionItem("Enter private UUID",
-                                                  self.__assign, [meter, channel, None]))
+                                                  self.__assign, [meter, channel, None, '30m'],
+                                                  should_exit=True))
                 meter_menu.append_item(SubmenuItem(f"{channel}: {value[0]} {value[1]}", map_menu, self.menu))
             submenu_item = SubmenuItem(f"Meter {meter.identifier}", meter_menu, self.menu)
 
@@ -116,6 +117,8 @@ class Wizard:
             if isinstance(err, PermissionError):
                 self.menu.stdscr.addstr(4, 0, "Cannot write service file to /etc/systemd/system. "
                                               "Run as root (sudo) to solve this.")
+        self.menu.stdscr.addstr(6, 0, "(press any key)")
+        self.menu.stdscr.getkey()
 
     def __clear(self):
         """
@@ -144,9 +147,8 @@ class Wizard:
         row = 2
         for meter in self.channel_config.values():
             for channel, content in meter['channels'].items():
-                if 'uuid' in content:
-                    self.menu.stdscr.addstr(row, 2, f"{content['uuid']} mapped to {channel}")
-                    row += 1
+                self.menu.stdscr.addstr(row, 2, f"{channel} at {meter.get('id')} mapped to UUID {content.get('uuid')}")
+                row += 1
         self.menu.stdscr.addstr(row, 0, "(press any key)")
         self.menu.stdscr.getkey()
 
@@ -158,8 +160,6 @@ class Wizard:
             self.channel_config[meter.identifier] = {'channels': {},
                                                      'id': meter.identifier,
                                                      'protocol': meter.protocol}
-            if meter.tty:
-                self.channel_config[meter.identifier]['tty'] = meter.tty
         self.channel_config[meter.identifier]['channels'][channel] = {
             'uuid': uuid,
             'interval': interval
