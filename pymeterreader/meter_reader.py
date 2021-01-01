@@ -45,6 +45,8 @@ def map_configuration(config: dict) -> tp.List[MeterReaderNode]:  # noqa MC0001
             if config.get('middleware').get('type') == 'volkszaehler':
                 gateway = VolkszaehlerGateway(config.get('middleware').get('middleware_url'),
                                               config.get('middleware').get('interpolate', True))
+            elif config.get('middleware').get('type') == 'debug':
+                gateway = DebugGateway()
             else:
                 logging.error(f'Middleware "{config.get("middleware").get("type")}" not supported!')
                 gateway = None
