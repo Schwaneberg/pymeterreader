@@ -8,7 +8,10 @@ import time
 from logging import debug, error, warning
 import typing as tp
 from threading import Lock
-import smbus
+try:
+    import smbus
+except ImportError:
+    pass
 from construct import Struct, BytesInteger, BitStruct, BitsInteger
 from pymeterreader.device_lib.base import BaseReader
 from pymeterreader.device_lib.common import Sample, Device
@@ -58,6 +61,13 @@ class Bme280Reader(BaseReader):
         :param initial_baudrate: Baudrate used to send the request
         :param baudrate: Baudrate used to read the answer
         """
+        # Test if smbus library has been imported
+        try:
+            smbus
+        except NameError:
+            error(
+                "Could not import smbus library! This library is missing and Bme280Reader can not function without it!")
+            raise
         if kwargs:
             warning(f"Bme280Reader: Unknown parameter{'s' if len(kwargs) > 1 else ''}: {', '.join(kwargs.keys())}")
         if isinstance(meter_id, str):
