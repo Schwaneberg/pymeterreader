@@ -1,6 +1,7 @@
 import logging
 from time import time
 import typing as tp
+from pymeterreader.core.channel_info import ChannelInfo
 from pymeterreader.device_lib import BaseReader, Sample, strip
 from pymeterreader.gateway import BaseGateway
 
@@ -9,22 +10,6 @@ class MeterReaderNode:
     """
     MeterReaderNode represents a mapping of a meter's channels to uuids.
     """
-    class ChannelInfo:
-        def __init__(self, uuid, interval, factor, last_upload, last_value):
-            """
-            Channel info structure
-            :param uuid: uuid of db entry to feed
-            :param interval: interval between readings in seconds
-            :param factor: multiply to original values, e.g. to conver kWh to Wh
-            :param last_upload: time of last upload to middleware
-            :param last_value: last value in middleware
-            """
-            # pylint: disable=too-many-arguments
-            self.uuid = uuid
-            self.interval = interval
-            self.factor = factor
-            self.last_upload = last_upload
-            self.last_value = last_value
 
     def __init__(self, channels: tp.Dict[str, tp.Tuple[str, tp.Union[int, float], tp.Union[int, float]]],
                  reader: BaseReader, gateway: BaseGateway):
@@ -45,11 +30,11 @@ class MeterReaderNode:
             else:
                 last_upload = middleware_entry[0]
                 last_value = middleware_entry[1]
-            self.__channels[channel] = MeterReaderNode.ChannelInfo(uuid=values[0],
-                                                                   interval=values[1],
-                                                                   factor=values[2],
-                                                                   last_upload=last_upload,
-                                                                   last_value=last_value)
+            self.__channels[channel] = ChannelInfo(uuid=values[0],
+                                                   interval=values[1],
+                                                   factor=values[2],
+                                                   last_upload=last_upload,
+                                                   last_value=last_value)
         self.__reader = reader
         self.__gateway = gateway
 
