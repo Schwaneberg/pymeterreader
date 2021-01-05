@@ -91,14 +91,10 @@ class MeterReaderNode:
                             cur_value = self.__cast_value(entry.get('value', ''),
                                                           self.__channels[cur_channel].factor)
                             if self.__channels[cur_channel].last_upload + self.__channels[cur_channel].interval <= now:
-                                # Push hourly interpolated values to enable line plotting in volkszaehler middleware
-                                if self.__gateway.interpolate:
-                                    self.__push_interpolated_data(cur_value,
-                                                                  now,
-                                                                  self.__channels[cur_channel])
-                                if self.__gateway.post(self.__channels[cur_channel].uuid,
+                                if self.__gateway.post(self.__channels[cur_channel],
                                                        cur_value,
-                                                       sample.time):
+                                                       sample.time,
+                                                       now):
                                     self.__channels[cur_channel].last_upload = now
                                     self.__channels[cur_channel].last_value = cur_value
                                     logging.debug(f"POST {cur_value}{cur_unit} to {self.__channels[cur_channel].uuid}")
@@ -114,14 +110,3 @@ class MeterReaderNode:
         else:
             logging.error("No data from meter. Skipping interval.")
         return posted == len(self.__channels)
-
-    def __push_interpolated_data(self, cur_value: tp.Union[float, int], cur_time: float, channel: ChannelInfo):
-        hours = round((cur_time - channel.last_upload) / 3600)
-        diff = cur_value - channel.last_value
-        if hours <= 24:
-            for hour in range(1, hours):
-                btw_time = channel.last_upload + hour * 3600
-                btw_value = channel.last_value + diff * (hour / hours)
-                self.__gateway.post(channel.uuid,
-                                    btw_value,
-                                    btw_time)

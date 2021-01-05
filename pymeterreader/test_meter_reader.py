@@ -1,7 +1,7 @@
 import unittest
 from unittest import mock
 from pymeterreader.meter_reader import map_configuration
-from pymeterreader.gateway import BaseGateway
+from pymeterreader.gateway import VolkszaehlerGateway
 from pymeterreader.device_lib.common import Sample
 
 EXAMPLE_CONF = {'devices': {
@@ -30,8 +30,8 @@ SAMPLE_PLAIN.meter_id = 888777666
 SAMPLE_PLAIN.channels = [{'objName': '6.8', 'value': 20000, 'unit': 'kWh'}]
 
 
-class MockedGateway(BaseGateway):
-    def post(self, uuid: str, value, timestamp):
+class MockedGateway(VolkszaehlerGateway):
+    def post(self, channel, value, sample_timestamp, poll_timestamp):
         return True
 
     def get(self, uuid):
