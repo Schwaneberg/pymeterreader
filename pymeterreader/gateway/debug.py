@@ -12,8 +12,8 @@ class DebugGateway(BaseGateway):
     This class is used for debugging uploads to a middleware
     """
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
         self.post_timestamps = {}
 
     def post(self, channel: ChannelInfo, value: tp.Union[int, float], sample_timestamp: tp.Union[int, float],

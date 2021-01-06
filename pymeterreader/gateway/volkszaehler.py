@@ -18,14 +18,14 @@ class VolkszaehlerGateway(BaseGateway):
     DATA_PATH = "data"
     SUFFIX = ".json"
 
-    def __init__(self, url: str, interpolate: bool = True):
+    def __init__(self, middleware_url: str, interpolate: bool = True, **kwargs):
         """
          Initialize Volkszaehler Gateway
-         :param url: address of middleware
+         :param middleware_url: address of middleware
          :param interpolate: If true, hourly values will be interpolated and ushed
          """
-        super().__init__()
-        self.url = url
+        super().__init__(**kwargs)
+        self.url = middleware_url
         self.interpolate = interpolate
 
     def post(self, channel: ChannelInfo, value: tp.Union[int, float], sample_timestamp: tp.Union[int, float],

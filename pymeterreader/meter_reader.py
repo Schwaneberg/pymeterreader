@@ -42,13 +42,14 @@ def map_configuration(config: dict) -> tp.List[MeterReaderNode]:  # noqa MC0001
     meter_reader_nodes = []
     if 'devices' in config and 'middleware' in config:
         try:
-            if config.get('middleware').get('type') == 'volkszaehler':
-                gateway = VolkszaehlerGateway(config.get('middleware').get('middleware_url'),
-                                              config.get('middleware').get('interpolate', True))
-            elif config.get('middleware').get('type') == 'debug':
-                gateway = DebugGateway()
+            middleware_type = config.get('middleware').pop('type')
+            middleware_configuration = config.get('middleware')
+            if middleware_type == 'volkszaehler':
+                gateway = VolkszaehlerGateway(**middleware_configuration)
+            elif middleware_type == 'debug':
+                gateway = DebugGateway(**middleware_configuration)
             else:
-                logging.error(f'Middleware "{config.get("middleware").get("type")}" not supported!')
+                logging.error(f'Middleware "{middleware_type}" not supported!')
                 gateway = None
             if gateway:
                 for device in config.get('devices').values():
