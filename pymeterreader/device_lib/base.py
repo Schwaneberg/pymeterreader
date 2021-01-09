@@ -34,12 +34,13 @@ class BaseReader(ABC):
                     f' {", ".join(kwargs.keys())}')
 
     @staticmethod
-    def detect(devices: tp.List[Device], tty=r'/dev/ttyUSB\d+'):
+    @abstractmethod
+    def detect(**kwargs) -> tp.List[Device]:
         """
-        Detect available devices at matching tty interfaces
-        :param devices: List of previously detected devices, that will be extended
-        :param tty: Regex to filter tty device nodes
+        Detect available devices on all possible interfaces
+        :kwargs: parameters for the classes that implement detection
         """
+        raise NotImplementedError("This is just an abstract class.")
 
     def __del__(self):
         """

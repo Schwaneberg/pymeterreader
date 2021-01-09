@@ -10,7 +10,7 @@ def detect() -> tp.List[Device]:
     Calls all detectors and returns a list of available devices.
     """
     devices = []
-    SmlReader.detect(devices)
-    PlainReader.detect(devices)
-    Bme280Reader.detect(devices)
+    devices.extend(SmlReader.detect())
+    devices.extend(PlainReader.detect())
+    devices.extend(Bme280Reader.detect())
     return devices

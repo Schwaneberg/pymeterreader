@@ -114,7 +114,8 @@ class PlainReader(BaseReader):
         return None
 
     @staticmethod
-    def detect(devices: tp.List[Device], tty=r'ttyUSB\d+'):
+    def detect(tty=r'ttyUSB\d+', **kwargs) -> tp.List[Device]:
+        devices: tp.List[Device] = []
         sp = os.path.sep
         used_interfaces = [device.tty for device in devices]
         potential_ttys = [f'{sp}dev{sp}{file_name}'
@@ -136,6 +137,7 @@ class PlainReader(BaseReader):
                                     'plain',
                                     entries)
                     devices.append(device)
+        return devices
 
     def __parse(self, response) -> Sample:
         """

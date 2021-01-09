@@ -207,12 +207,11 @@ class Bme280Reader(BaseReader):
         return None
 
     @staticmethod
-    def detect(devices: tp.List[Device], tty=r'/dev/ttyUSB\d+'):
+    def detect(**kwargs) -> tp.List[Device]:
         """
         Add available devices to list
-        :param devices: list of available devices
         """
-        del tty
+        devices: tp.List[Device] = []
         addresses = ['0x76', '0x77']
         for address in addresses:
             channels = Bme280Reader(address).poll().channels
@@ -222,3 +221,4 @@ class Bme280Reader(BaseReader):
                 devices.append(Device(address,
                                       protocol='BME280',
                                       channels=channels_dict))
+        return devices
