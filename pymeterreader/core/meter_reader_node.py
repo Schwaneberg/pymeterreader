@@ -1,7 +1,7 @@
 import logging
 from time import time
 import typing as tp
-from pymeterreader.core.channel_info import ChannelInfo
+from pymeterreader.core.channel_upload_info import ChannelUploadInfo
 from pymeterreader.device_lib import BaseReader, Sample, strip
 from pymeterreader.gateway import BaseGateway
 
@@ -30,11 +30,11 @@ class MeterReaderNode:
             else:
                 last_upload = middleware_entry[0]
                 last_value = middleware_entry[1]
-            self.__channels[channel] = ChannelInfo(uuid=values[0],
-                                                   interval=values[1],
-                                                   factor=values[2],
-                                                   last_upload=last_upload,
-                                                   last_value=last_value)
+            self.__channels[channel] = ChannelUploadInfo(uuid=values[0],
+                                                         interval=values[1],
+                                                         factor=values[2],
+                                                         last_upload=last_upload,
+                                                         last_value=last_value)
         self.__reader = reader
         self.__gateway = gateway
 

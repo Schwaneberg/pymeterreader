@@ -4,7 +4,7 @@ Base Gateway
 import typing as tp
 from abc import ABC, abstractmethod
 from logging import warning
-from pymeterreader.core.channel_info import ChannelInfo
+from pymeterreader.core.channel_upload_info import ChannelUploadInfo
 
 
 class BaseGateway(ABC):
@@ -18,7 +18,7 @@ class BaseGateway(ABC):
                     f' {", ".join(kwargs.keys())}')
 
     @abstractmethod
-    def post(self, channel: ChannelInfo, value: tp.Union[int, float], sample_timestamp: tp.Union[int, float],
+    def post(self, channel: ChannelUploadInfo, value: tp.Union[int, float], sample_timestamp: tp.Union[int, float],
              poll_timestamp: tp.Union[int, float]) -> bool:
         raise NotImplementedError("Abstract Base for POST")
 

@@ -3,7 +3,7 @@ Uploader that prints to the Console instead of uploading
 """
 import typing as tp
 from logging import debug
-from pymeterreader.core.channel_info import ChannelInfo
+from pymeterreader.core.channel_upload_info import ChannelUploadInfo
 from pymeterreader.gateway.basegateway import BaseGateway
 
 
@@ -16,7 +16,7 @@ class DebugGateway(BaseGateway):
         super().__init__(**kwargs)
         self.post_timestamps = {}
 
-    def post(self, channel: ChannelInfo, value: tp.Union[int, float], sample_timestamp: tp.Union[int, float],
+    def post(self, channel: ChannelUploadInfo, value: tp.Union[int, float], sample_timestamp: tp.Union[int, float],
              poll_timestamp: tp.Union[int, float]) -> bool:
         timestamp = self.timestamp_to_int(sample_timestamp)
         self.post_timestamps[channel.uuid] = timestamp, value

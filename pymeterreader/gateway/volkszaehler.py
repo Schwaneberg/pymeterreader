@@ -7,7 +7,7 @@ from time import time
 from contextlib import suppress
 from logging import error, debug, info
 import requests
-from pymeterreader.core.channel_info import ChannelInfo
+from pymeterreader.core.channel_upload_info import ChannelUploadInfo
 from pymeterreader.gateway.basegateway import BaseGateway
 
 
@@ -28,7 +28,7 @@ class VolkszaehlerGateway(BaseGateway):
         self.url = middleware_url
         self.interpolate = interpolate
 
-    def post(self, channel: ChannelInfo, value: tp.Union[int, float], sample_timestamp: tp.Union[int, float],
+    def post(self, channel: ChannelUploadInfo, value: tp.Union[int, float], sample_timestamp: tp.Union[int, float],
              poll_timestamp: tp.Union[int, float]) -> bool:
         # Push hourly interpolated values to enable line plotting in volkszaehler middleware
         if self.interpolate:
