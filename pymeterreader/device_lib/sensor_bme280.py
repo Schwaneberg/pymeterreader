@@ -14,7 +14,7 @@ except ImportError:
     pass
 from construct import Struct, BytesInteger, BitStruct, BitsInteger
 from pymeterreader.device_lib.base import BaseReader
-from pymeterreader.device_lib.common import Sample, Device
+from pymeterreader.device_lib.common import Sample, Device, ChannelValue
 
 AUX_STRUCT = BitStruct('H4' / BitsInteger(12, True), 'H5' / BitsInteger(12, True))
 COMP_PARAM_STRUCT = Struct('T1' / BytesInteger(2, False, True),
@@ -136,9 +136,7 @@ class Bme280Reader(BaseReader):
                 var2 = (((((temp_raw >> 4) - dig['T1']) * ((temp_raw >> 4) - dig['T1'])) >> 12) * dig['T3']) >> 14
                 t_fine = var1 + var2
                 temperature = float(((t_fine * 5) + 128) >> 8)
-                sample.channels.append({'objName': 'TEMPERATURE',
-                                        'value': temperature / 100.0,
-                                        'unit': '°C'})
+                sample.channels.append(ChannelValue('TEMPERATURE', temperature / 100.0, '°C'))
 
                 # Refine pressure and adjust for temperature
                 var1 = t_fine / 2.0 - 64000.0
@@ -155,9 +153,7 @@ class Bme280Reader(BaseReader):
                     var1 = dig['P9'] * pressure * pressure / 2147483648.0
                     var2 = pressure * dig['P8'] / 32768.0
                     pressure = pressure + (var1 + var2 + dig['P7']) / 16.0
-                sample.channels.append({'objName': 'PRESSURE',
-                                        'value': pressure / 100.0,
-                                        'unit': 'hPa'})
+                sample.channels.append(ChannelValue('PRESSURE', pressure / 100.0, 'hPa'))
 
                 # Refine humidity
                 humidity = t_fine - 76800.0
@@ -169,9 +165,7 @@ class Bme280Reader(BaseReader):
                     humidity = 100
                 elif humidity < 0:
                     humidity = 0
-                sample.channels.append({'objName': 'HUMIDITY',
-                                        'value': humidity,
-                                        'unit': '%'})
+                sample.channels.append(ChannelValue('HUMIDITY', humidity, '%'))
                 return sample
             except OSError as err:
                 if isinstance(err, PermissionError):
@@ -209,9 +203,7 @@ class Bme280Reader(BaseReader):
         for address in addresses:
             channels = Bme280Reader(address).poll().channels
             if channels:
-                channels_dict = {channel['objName']: (channel['value'], channel['unit'])
-                                 for channel in channels}
                 devices.append(Device(address,
                                       protocol='BME280',
-                                      channels=channels_dict))
+                                      channels=channels))
         return devices

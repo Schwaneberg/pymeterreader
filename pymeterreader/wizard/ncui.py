@@ -7,7 +7,7 @@ from os.path import exists
 from subprocess import run
 from cursesmenu import CursesMenu
 from cursesmenu.items import FunctionItem, SubmenuItem
-from pymeterreader.device_lib.common import Device
+from pymeterreader.device_lib.common import Device, ChannelValue
 from pymeterreader.gateway import VolkszaehlerGateway
 from pymeterreader.wizard.generator import generate_yaml, SERVICE_TEMPLATE
 from pymeterreader.wizard.detector import detect
@@ -62,8 +62,8 @@ class Wizard:
 
         for meter in self.meters:
             meter_menu = CursesMenu(f"Connect channels for meter {meter.identifier} at {meter.tty}", "By channel")
-            for channel, value in meter.channels.items():
-                map_menu = CursesMenu(f"Choose uuid for {channel}")
+            for channel in meter.channels:
+                map_menu = CursesMenu(f"Choose uuid for {channel.channel_name}")
                 for choice in self.gateway_channels:
                     map_menu.append_item(FunctionItem(f"{choice['uuid']}: {choice['title']}",
                                                       self.__assign, [meter, channel, choice['uuid'], '30m'],
@@ -71,7 +71,8 @@ class Wizard:
                 map_menu.append_item(FunctionItem("Enter private UUID",
                                                   self.__assign, [meter, channel, None, '30m'],
                                                   should_exit=True))
-                meter_menu.append_item(SubmenuItem(f"{channel}: {value[0]} {value[1]}", map_menu, self.menu))
+                meter_menu.append_item(
+                    SubmenuItem(f"{channel.channel_name}: {channel.value} {channel.unit}", map_menu, self.menu))
             submenu_item = SubmenuItem(f"Meter {meter.identifier}", meter_menu, self.menu)
 
             self.menu.append_item(submenu_item)
@@ -154,7 +155,7 @@ class Wizard:
         self.menu.stdscr.addstr(row, 0, "(press any key)")
         self.menu.stdscr.getkey()
 
-    def __assign(self, meter: Device, channel, uuid: str, interval: str):
+    def __assign(self, meter: Device, channel: ChannelValue, uuid: str, interval: str):
         if uuid is None:
             self.menu.clear_screen()
             uuid = input("Enter private UUID: ")
@@ -162,7 +163,7 @@ class Wizard:
             self.channel_config[meter.identifier] = {'channels': {},
                                                      'id': meter.identifier,
                                                      'protocol': meter.protocol}
-        self.channel_config[meter.identifier]['channels'][channel] = {
+        self.channel_config[meter.identifier]['channels'][channel.channel_name] = {
             'uuid': uuid,
             'interval': interval
         }

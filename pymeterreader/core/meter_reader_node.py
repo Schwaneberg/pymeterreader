@@ -82,14 +82,13 @@ class MeterReaderNode:
         if sample is None:
             sample = self.__reader.poll()
         if sample is not None:
-            for entry in sample.channels:
-                cur_unit = entry.get('unit', '')
+            for channel in sample.channels:
+                cur_unit = channel.unit
                 try:
                     if cur_unit is not None:
-                        cur_channel = strip(entry.get('objName', ''))
+                        cur_channel = strip(channel.channel_name)
                         if cur_channel in self.__channels:
-                            cur_value = self.__cast_value(entry.get('value', ''),
-                                                          self.__channels[cur_channel].factor)
+                            cur_value = self.__cast_value(channel.value, self.__channels[cur_channel].factor)
                             if self.__channels[cur_channel].last_upload + self.__channels[cur_channel].interval <= now:
                                 if self.__gateway.post(self.__channels[cur_channel],
                                                        cur_value,
@@ -105,7 +104,7 @@ class MeterReaderNode:
                                 logging.info(f"Skipping upload for {self.__channels[cur_channel].uuid}.")
                                 posted += 1
                 except ValueError:
-                    logging.error(f'Unable to cast {entry.get("value", "N/A")}.')
+                    logging.error(f'Unable to cast {channel.value}.')
                     continue
         else:
             logging.error("No data from meter. Skipping interval.")

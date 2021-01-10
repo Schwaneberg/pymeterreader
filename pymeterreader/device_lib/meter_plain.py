@@ -9,7 +9,7 @@ import typing as tp
 import serial
 from threading import Lock
 from pymeterreader.device_lib.base import BaseReader
-from pymeterreader.device_lib.common import Sample, Device, strip
+from pymeterreader.device_lib.common import Sample, Device, strip, ChannelValue
 
 
 class PlainReader(BaseReader):
@@ -126,18 +126,19 @@ class PlainReader(BaseReader):
                           and f'{sp}dev{sp}{file_name}' not in used_interfaces]
         for tty_path in potential_ttys:
             response = PlainReader.__get_response(tty_path)
-            entries = {}
+            channels: tp.List[ChannelValue] = []
             if response:
                 for ident, value, unit in re.findall(r"([\d.]+)\(([\d.]+)\*?([\w\d.]+)?\)", response):
+                    identifier = None
                     if not unit:
-                        entries["identifier"] = value
+                        identifier = value
                     else:
-                        entries[ident] = (value, unit)
-                if 'identifier' in entries:
-                    device = Device(entries.pop("identifier"),
+                        channels.append(ChannelValue(ident, value, unit))
+                if identifier:
+                    device = Device(identifier,
                                     tty_path,
                                     'plain',
-                                    entries)
+                                    channels)
                     devices.append(device)
         return devices
 
@@ -152,7 +153,5 @@ class PlainReader(BaseReader):
                 if strip(self.meter_id) in value:
                     parsed.meter_id = value
             else:
-                parsed.channels.append({'objName': ident,
-                                        'value': float(value),
-                                        'unit': unit})
+                parsed.channels.append(ChannelValue(ident, float(value), unit))
         return parsed

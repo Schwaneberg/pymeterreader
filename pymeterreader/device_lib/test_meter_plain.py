@@ -1,6 +1,6 @@
 import unittest
 from unittest import mock
-from pymeterreader.device_lib.common import Device
+from pymeterreader.device_lib.common import Device, ChannelValue
 from pymeterreader.device_lib.meter_plain import PlainReader
 
 START_SEQ = b'\x1b\x1b\x1b\x1b\x01\x01\x01\x01'
@@ -48,9 +48,9 @@ class TestSmlMeters(unittest.TestCase):
         mock_listdir.return_value = ['ttyUSB0']
         sml_meter = PlainReader('99999999')
         sample = sml_meter.poll()
-        self.assertEqual(6047, sample.channels[0]['value'])
-        self.assertEqual('6.8', sample.channels[0]['objName'])
-        self.assertEqual('kWh', sample.channels[0]['unit'])
+        self.assertEqual(6047, sample.channels[0].value)
+        self.assertEqual('6.8', sample.channels[0].channel_name)
+        self.assertEqual('kWh', sample.channels[0].unit)
         self.assertIsNotNone(sml_meter.tty_path)
         self.assertEqual(1, mserial.close_called)
         self.assertEqual(40 * b'\00' + b"/?!\x0D\x0A", mserial.written)
@@ -74,12 +74,12 @@ class TestSmlMeters(unittest.TestCase):
         mserial = MockSerial(b'', [b'\x00', TEST_FRAME])
         mock_serial.Serial.return_value = mserial
         mock_listdir.return_value = ['ttyUSB0']
-        devices = [Device("dummy")]
-        PlainReader.detect(devices)
+        devices = [Device("dummy", "/dev/dummy", "dummyprot", [])]
+        devices.extend(PlainReader.detect())
         self.assertEqual(devices[0].identifier, 'dummy')
         self.assertEqual(devices[1].identifier, '99999999')
-        self.assertIn('6.8', devices[1].channels)
-        self.assertIn('6.26', devices[1].channels)
+        self.assertIn(ChannelValue('6.8', '0006047', 'kWh'), devices[1].channels)
+        self.assertIn(ChannelValue('6.26', '00428.35', 'm3'), devices[1].channels)
         self.assertEqual('/dev/ttyUSB0', devices[1].tty)
 
 

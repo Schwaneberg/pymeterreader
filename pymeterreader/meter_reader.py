@@ -55,7 +55,7 @@ def map_configuration(config: dict) -> tp.List[MeterReaderNode]:  # noqa MC0001
                 for device in config.get('devices').values():
                     meter_id = strip(str(device.pop('id')))
                     protocol = strip(device.pop('protocol'))
-                    channels = device.pop('channels')
+                    configuration_channels = device.pop('channels')
                     if protocol == 'SML':
                         reader = SmlReader(meter_id, **device)
                     elif protocol == 'PLAIN':
@@ -69,15 +69,14 @@ def map_configuration(config: dict) -> tp.List[MeterReaderNode]:  # noqa MC0001
                         sample = reader.poll()
                         if sample is not None:
                             available_channels = {}
-                            for variable in sample.channels:
-                                obj_name = variable.get('objName', '')
-                                for channel_name, channel in channels.items():
-                                    interval = humanfriendly_time_parser(channel.get('interval', '1h'))
-                                    uuid = channel.get('uuid')
-                                    factor = channel.get('factor', 1)
-                                    if strip(str(channel_name)) in strip(str(obj_name)):
+                            for sample_channel in sample.channels:
+                                for configuration_channel_name, configuration_channel in configuration_channels.items():
+                                    interval = humanfriendly_time_parser(configuration_channel.get('interval', '1h'))
+                                    uuid = configuration_channel.get('uuid')
+                                    factor = configuration_channel.get('factor', 1)
+                                    if strip(str(configuration_channel_name)) in strip(sample_channel.channel_name):
                                         # Replacing config string with exact match
-                                        available_channels[obj_name] = (uuid, interval, factor)
+                                        available_channels[sample_channel.channel_name] = (uuid, interval, factor)
                             if available_channels:
                                 meter_reader_node = MeterReaderNode(available_channels,
                                                                     reader,

@@ -2,11 +2,11 @@ import unittest
 from unittest import mock
 from pymeterreader.meter_reader import map_configuration
 from pymeterreader.gateway import VolkszaehlerGateway
-from pymeterreader.device_lib.common import Sample
+from pymeterreader.device_lib.common import Sample, ChannelValue
 
 EXAMPLE_CONF = {'devices': {
     'electric meter': {'channels': {'1.8.0': {'uuid': 'c07ef180-e4c6-11e9-95a6-434024b862ef', 'interval': '5m'}},
-                       'tty': '/dev/ttyUSB\\d+', 'id': '1 EMH00 12345678', 'protocol': 'sml', 'baudrate': 9600},
+                       'tty': '/dev/ttyUSB0', 'id': '1 EMH00 12345678', 'protocol': 'sml', 'baudrate': 9600},
     'heat meter': {'channels': {6.8: {'uuid': 'c07ef180-e4c6-11e9-95a6-434024b862ef', 'interval': '12h'}},
                    'id': 888777666, 'protocol': 'plain'}, 'climate basement': {
         'channels': {'humidity': {'uuid': 'ca5a59ee-5de5-4a20-a24a-fdb5f64e5db0', 'interval': '1h'},
@@ -17,17 +17,16 @@ EXAMPLE_CONF = {'devices': {
 
 SAMPLE_BME = Sample()
 SAMPLE_BME.meter_id = '0x76'
-SAMPLE_BME.channels = [{'objName': 'TEMPERATURE', 'value': 20.0, 'unit': 'C'},
-            {'objName': 'HUMIDITY', 'value': 50.0, 'unit': '%'},
-            {'objName': 'PRESSURE', 'value': 1000.0, 'unit': 'hPa'}]
+SAMPLE_BME.channels = [ChannelValue('TEMPERATURE', 20.0, 'C'), ChannelValue('HUMIDITY', 50.0, '%'),
+                       ChannelValue('PRESSURE', 1000.0, 'hPa')]
 
 SAMPLE_SML = Sample()
 SAMPLE_SML.meter_id = '1 EMH00 12345678'
-SAMPLE_SML.channels = [{'objName': '1.8.0*255', 'value': 10000, 'unit': 'kWh'}]
+SAMPLE_SML.channels = [ChannelValue('1.8.0*255', 10000, 'kWh')]
 
 SAMPLE_PLAIN = Sample()
-SAMPLE_PLAIN.meter_id = 888777666
-SAMPLE_PLAIN.channels = [{'objName': '6.8', 'value': 20000, 'unit': 'kWh'}]
+SAMPLE_PLAIN.meter_id = '888777666'
+SAMPLE_PLAIN.channels = [ChannelValue('6.8', 20000, 'kWh')]
 
 
 class MockedGateway(VolkszaehlerGateway):
@@ -53,8 +52,8 @@ class MockedReader():
 class TestMeterReader(unittest.TestCase):
     @mock.patch("pymeterreader.meter_reader.VolkszaehlerGateway", return_value=MockedGateway('http://192.168.1.1/', True))
     @mock.patch("pymeterreader.meter_reader.SmlReader", return_value=MockedReader(SAMPLE_SML))
-    @mock.patch("pymeterreader.meter_reader.PlainReader",  return_value=MockedReader(SAMPLE_PLAIN))
-    @mock.patch("pymeterreader.meter_reader.Bme280Reader",  return_value=MockedReader(SAMPLE_BME))
+    @mock.patch("pymeterreader.meter_reader.PlainReader", return_value=MockedReader(SAMPLE_PLAIN))
+    @mock.patch("pymeterreader.meter_reader.Bme280Reader", return_value=MockedReader(SAMPLE_BME))
     def test_meter_reader(self, mock_bme, mock_plain, mock_sml, mock_gw):
         meter_reader_nodes = map_configuration(EXAMPLE_CONF)
         self.assertEqual(3, len(meter_reader_nodes))

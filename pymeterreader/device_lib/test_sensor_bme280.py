@@ -1,5 +1,6 @@
 import unittest
 from unittest import mock
+from pymeterreader.device_lib.common import ChannelValue
 from pymeterreader.device_lib.sensor_bme280 import Bme280Reader
 
 pres_raw = 343552
@@ -39,9 +40,8 @@ class mock_bus:
         self.closed = True
 
 
-ref_channels = [{'objName': 'TEMPERATURE', 'value': 19.27, 'unit': '°C'},
-                {'objName': 'PRESSURE', 'value': 998.5556593146621, 'unit': 'hPa'},
-                {'objName': 'HUMIDITY', 'value': 50.93572133159069, 'unit': '%'}]
+ref_channels = [ChannelValue('TEMPERATURE', 19.27, '°C'), ChannelValue('PRESSURE', 998.5556593146621, 'hPa'),
+                ChannelValue('HUMIDITY', 50.93572133159069, '%')]
 
 
 class TestBme280(unittest.TestCase):
