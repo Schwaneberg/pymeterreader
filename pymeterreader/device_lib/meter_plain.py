@@ -23,7 +23,7 @@ class PlainReader(BaseReader):
     __START_SEQ = b"/?!\x0D\x0A"
     __SERIAL_LOCK = Lock()
 
-    def __init__(self, meter_id: str, tty=r'ttyUSB\d+', **kwargs: int):
+    def __init__(self, meter_id: str, tty='ttyUSB0', **kwargs: int):
         """
         Initialize Plain Meter Reader object
         (See https://wiki.volkszaehler.org/software/obis for OBIS code mapping)
@@ -33,7 +33,9 @@ class PlainReader(BaseReader):
         :param initial_baudrate: Baudrate used to send the request
         :param baudrate: Baudrate used to read the answer
         """
-        super().__init__(meter_id, tty)
+        super().__init__(meter_id, **kwargs)
+        self.tty_pattern = tty
+        self.tty_path = None
         self.wakeup_zeros = kwargs.get('send_wakeup_zeros', 40)
         self.initial_baudrate = kwargs.get('initial_baudrate', 300)
         self.baudrate = kwargs.get('baudrate', 2400)
