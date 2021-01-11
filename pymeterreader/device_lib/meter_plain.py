@@ -86,6 +86,8 @@ class PlainReader(BaseReader):
                 ser.close()
             debug(f'Plain response: ({init_msg.decode("utf-8")})"{response}"')
             return response
+        except UnicodeError as err:
+            error(f'Exception occurred while decoding: {err}')
         except OSError as err:
             error(f'Exception occurred while accessing accessing {tty}: {err}')
         return None
