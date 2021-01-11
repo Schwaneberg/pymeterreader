@@ -80,7 +80,7 @@ class TestSmlMeters(unittest.TestCase):
         self.assertEqual(devices[1].identifier, '99999999')
         self.assertIn(ChannelValue('6.8', '0006047', 'kWh'), devices[1].channels)
         self.assertIn(ChannelValue('6.26', '00428.35', 'm3'), devices[1].channels)
-        self.assertEqual('/dev/ttyUSB0', devices[1].tty)
+        self.assertEqual('/dev/ttyUSB0', devices[1].access_path)
 
 
 if __name__ == '__main__':

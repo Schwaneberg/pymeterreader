@@ -29,16 +29,15 @@ class Sample:
     channels: tp.List[ChannelValue] = field(default_factory=list)
 
 
+@dataclass(frozen=True)
 class Device:
     """
     Representation of a device
     """
-    def __init__(self, identifier: str = "", tty: str = "", protocol: str = "",
-                 channels: tp.Optional[tp.Dict[str, tp.Tuple[str, str]]] = None):
-        self.identifier = identifier
-        self.tty = tty
-        self.protocol = protocol
-        self.channels = channels if channels is not None else {}
+    meter_id: str
+    meter_address: str
+    protocol: str
+    channels: tp.List[ChannelValue] = field(default_factory=list)
 
 
 def strip(string: str) -> str:
