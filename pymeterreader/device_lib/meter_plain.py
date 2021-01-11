@@ -124,17 +124,18 @@ class PlainReader(BaseReader):
         for tty_path in potential_ttys:
             response = PlainReader.__get_response(tty_path)
             entries = {}
-            for ident, value, unit in re.findall(r"([\d.]+)\(([\d.]+)\*?([\w\d.]+)?\)", response):
-                if not unit:
-                    entries["identifier"] = value
-                else:
-                    entries[ident] = (value, unit)
-            if 'identifier' in entries:
-                device = Device(entries.pop("identifier"),
-                                tty_path,
-                                'plain',
-                                entries)
-                devices.append(device)
+            if response:
+                for ident, value, unit in re.findall(r"([\d.]+)\(([\d.]+)\*?([\w\d.]+)?\)", response):
+                    if not unit:
+                        entries["identifier"] = value
+                    else:
+                        entries[ident] = (value, unit)
+                if 'identifier' in entries:
+                    device = Device(entries.pop("identifier"),
+                                    tty_path,
+                                    'plain',
+                                    entries)
+                    devices.append(device)
 
     def __parse(self, response) -> Sample:
         """
