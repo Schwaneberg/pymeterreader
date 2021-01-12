@@ -1,6 +1,7 @@
 """
 Curses setup wizard
 """
+import logging
 import re
 from os.path import exists
 from subprocess import run
@@ -14,6 +15,7 @@ from pymeterreader.wizard.detector import detect
 
 class Wizard:
     def __init__(self):
+        logging.basicConfig(level=logging.INFO)
         self.url = "http://localhost/middleware.php"
         self.gateway = VolkszaehlerGateway(self.url)
         self.gateway_channels = self.gateway.get_channels()
