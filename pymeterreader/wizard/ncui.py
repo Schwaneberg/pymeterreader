@@ -2,8 +2,10 @@
 Curses setup wizard
 """
 import logging
+import platform
 import re
 from os.path import exists
+from pathlib import Path
 from subprocess import run
 from cursesmenu import CursesMenu
 from cursesmenu.items import FunctionItem, SubmenuItem
@@ -14,6 +16,9 @@ from pymeterreader.wizard.detector import detect
 
 
 class Wizard:
+    CONFIG_FILE_NAME = "pymeterreader.yaml"
+    POSIX_CONFIG_PATH = Path("/etc") / CONFIG_FILE_NAME
+
     def __init__(self):
         logging.basicConfig(level=logging.INFO)
         self.url = "http://localhost/middleware.php"
@@ -93,6 +98,11 @@ class Wizard:
 
     def __register_service(self):
         self.menu.clear_screen()
+        if platform.system() != "Linux":
+            self.menu.stdscr.addstr(0, 0, "Systemd Service registration is only supported on Linux!")
+            self.menu.stdscr.addstr(1, 0, "(press any key)")
+            self.menu.stdscr.getkey()
+            return
         self.menu.stdscr.addstr(0, 0, "Installing service...")
         run('sudo systemctl stop pymeterreader',  # pylint: disable=subprocess-run-check
             universal_newlines=True,
@@ -100,26 +110,28 @@ class Wizard:
 
         target_service_file = "/etc/systemd/system/pymeterreader.service"
 
-        service_str = SERVICE_TEMPLATE.format('pymeterreader -c /etc/pymeterreader.yaml')
+        service_str = SERVICE_TEMPLATE.format(f'pymeterreader -c {self.POSIX_CONFIG_PATH.absolute()}')
         try:
             with open(target_service_file, 'w') as target_file:
                 target_file.write(service_str)
             run('systemctl daemon-reload',  # pylint: disable=subprocess-run-check
                 universal_newlines=True,
                 shell=True)
-            if not exists('/etc/pymeterreader.yaml'):
-                self.menu.stdscr.addstr(1, 0, "Copy example configuration file to '/etc/pymeterreader.yaml'")
+            if not exists(self.POSIX_CONFIG_PATH):
+                self.menu.stdscr.addstr(1, 0,
+                                        f"Copy example configuration file to '{self.POSIX_CONFIG_PATH.absolute()}'")
                 with open('example_configuration.yaml', 'r') as file:
                     example_config = file.read()
-                with open('/etc/pymeterreader.yaml', 'w') as file:
+                with open(self.POSIX_CONFIG_PATH, 'w') as file:
                     file.write(example_config)
-            self.menu.stdscr.addstr(2, 0, "Registered pymeterreader as servicee.\n"
+            self.menu.stdscr.addstr(2, 0, "Registered pymeterreader as service.\n"
                                           "Enable with 'sudo systemctl enable pymeterreader'\n."
-                                          "IMPORTANT: Create configuration file '/etc/pymeterreader.yaml'")
-        except OSError as err:
-            if isinstance(err, PermissionError):
-                self.menu.stdscr.addstr(4, 0, "Cannot write service file to /etc/systemd/system. "
-                                              "Run as root (sudo) to solve this.")
+                                          f"IMPORTANT: Create configuration file '{self.POSIX_CONFIG_PATH.absolute()}'")
+        except FileNotFoundError as err:
+            self.menu.stdscr.addstr(4, 0, f"Could not access file: {err}!")
+        except PermissionError:
+            self.menu.stdscr.addstr(4, 0, "Cannot write service file to /etc/systemd/system. "
+                                          "Run as root (sudo) to solve this.")
         self.menu.stdscr.addstr(6, 0, "(press any key)")
         self.menu.stdscr.getkey()
 
@@ -136,11 +148,17 @@ class Wizard:
         self.menu.clear_screen()
         result = generate_yaml(self.channel_config, self.url)
         try:
-            with open('/etc/pymeterreader.yaml', 'w') as config_file:
+            if platform.system() in ["Linux", "Darwin"]:
+                config_path = self.POSIX_CONFIG_PATH
+            else:
+                config_path = Path(".") / "pymeterreader.yaml"
+            with open(config_path, "w") as config_file:
                 config_file.write(result)
-            self.menu.stdscr.addstr(0, 0, "Saved to /etc/pymeterreader.yaml")
+            self.menu.stdscr.addstr(0, 0, f"Saved to {config_path.absolute()}")
         except PermissionError:
-            self.menu.stdscr.addstr(0, 0, "Insufficient permissions: cannot write to /etc/pymeterreader.yaml")
+            self.menu.stdscr.addstr(0, 0, f"Insufficient permissions: cannot write to {config_path.absolute()}!")
+        except FileNotFoundError:
+            self.menu.stdscr.addstr(0, 0, f"Could not access path: {config_path.absolute()}!")
         self.menu.stdscr.addstr(1, 0, "(press any key)")
         self.menu.stdscr.getkey()
 
