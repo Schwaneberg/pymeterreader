@@ -1,86 +1,106 @@
 import unittest
 from unittest import mock
-from pymeterreader.device_lib.common import Device, ChannelValue
-from pymeterreader.device_lib.meter_plain import PlainReader
-
-START_SEQ = b'\x1b\x1b\x1b\x1b\x01\x01\x01\x01'
-TEST_FRAME = b'\x026.8(0006047*kWh)6.26(00428.35*m3)9.21(99999999)\r\n'
-# 9.21: meter id
-# 6.8: count
+from serial import serial_for_url, PortNotOpenError
+from serial.tools.list_ports_common import ListPortInfo
+from pymeterreader.device_lib import PlainReader
+from pymeterreader.device_lib.common import ChannelValue, Device
+from pymeterreader.device_lib.test_meter import StaticMeterSimulator, SerialTestData
 
 
-class MockSerial:
-    def __init__(self, chars, lines):
-        self.chars = chars
-        self.lines = lines
-        self.close_called = 0
-        self.written = b''
+class PlainMeterSimulator(StaticMeterSimulator):
+    """
+    Simulate a Plain Meter that requires a wakeup before sending a sample.
+    This implementation is not compatible with a loop:// interface since it depends on having different send/receiver buffers.
+    """
 
-    def read(self):
-        if self.chars:
-            return self.chars.pop(0)
-        else:
-            return b'\x1b'
+    def __init__(self) -> None:
+        start_sequence = b'\x1b\x1b\x1b\x1b\x01\x01\x01\x01'
+        test_frame = b'\x026.8(0006047*kWh)6.26(00428.35*m3)9.21(99999999)\r\n'
+        test_data = SerialTestData(
+            binary=start_sequence + test_frame,
+            meter_id='99999999',
+            channels=[ChannelValue(channel_name='6.8', value=6047.0, unit='kWh'),
+                      ChannelValue(channel_name='6.26', value=428.35, unit='m3')])
+        super().__init__(test_data)
 
-    def write(self, data):
-        self.written += data
+    def wait_for_wakeup(self) -> bool:
+        wakeup_counter = 0
+        wakeup_sequence = b"\x00"
+        # Loop until we have received the wakeup sequence
+        while wakeup_counter < 40:
+            try:
+                if self.tty.read(1) == wakeup_sequence:
+                    wakeup_counter += 1
+                else:
+                    # Reset counter if the sequence is interrupted
+                    wakeup_counter = 0
+            # Keep trying even when the serial port has not been opened or has already been closed by the reader
+            except PortNotOpenError:
+                pass
+        # Read start sequence
+        start_sequence = b"/?!\x0D\x0A"
+        # Block until start sequence length has been read
+        sequence = self.tty.read(len(start_sequence))
+        # Return whether the start_sequence has been received
+        return sequence == start_sequence
 
-    def readline(self):
-        return self.lines.pop(0)
 
-    def flush(self):
-        pass
+class SimplePlainMeterSimulator(StaticMeterSimulator):
+    """
+    Simulate a Plain Meter that continuously clears the receive buffer before sending a sample
+    Thus it is compatible with a loop:// interface.
+    """
 
-    def close(self):
-        self.close_called +=1
+    def __init__(self) -> None:
+        start_sequence = b"/?!\x0D\x0A"
+        test_frame = b'\x026.8(0006047*kWh)6.26(00428.35*m3)9.21(99999999)\r\n'
+        test_data = SerialTestData(
+            binary=start_sequence + test_frame,
+            meter_id='99999999',
+            channels=[ChannelValue(channel_name='6.8', value=6047.0, unit='kWh'),
+                      ChannelValue(channel_name='6.26', value=428.35, unit='m3')])
+        super().__init__(test_data)
 
 
-def bytes_to_bytearray(data):
-    return [data[i:i+1] for i in range(len(data))]
+class TestPlainReader(unittest.TestCase):
+    @mock.patch('serial.serial_for_url', autospec=True)
+    def test_init(self, serial_for_url_mock):
+        # Create shared serial instance with unmocked import
+        shared_serial_instance = serial_for_url("loop://", baudrate=9600, timeout=5)
+        serial_for_url_mock.return_value = shared_serial_instance
+        simulator = SimplePlainMeterSimulator()
+        simulator.start()
+        reader = PlainReader("99999999", "loop://")
+        sample = reader.poll()
+        simulator.stop()
+        self.assertEqual(sample.meter_id, simulator.get_meter_id())
+        self.assertEqual(sample.channels, simulator.get_channels())
 
-
-class TestSmlMeters(unittest.TestCase):
-    @mock.patch('pymeterreader.device_lib.meter_plain.os.listdir', autospec=True)
-    @mock.patch('pymeterreader.device_lib.meter_plain.serial', autospec=True)
-    def test_init(self, mock_serial, mock_listdir):
-        mserial = MockSerial(b'', [b'\x00', TEST_FRAME])
-        mock_serial.Serial.return_value = mserial
-        mock_listdir.return_value = ['ttyUSB0']
-        sml_meter = PlainReader('99999999')
-        sample = sml_meter.poll()
-        self.assertEqual(6047, sample.channels[0].value)
-        self.assertEqual('6.8', sample.channels[0].channel_name)
-        self.assertEqual('kWh', sample.channels[0].unit)
-        self.assertIsNotNone(sml_meter.tty_path)
-        self.assertEqual(1, mserial.close_called)
-        self.assertEqual(40 * b'\00' + b"/?!\x0D\x0A", mserial.written)
-
-    @mock.patch('pymeterreader.device_lib.meter_plain.os.listdir', autospec=True)
-    @mock.patch('pymeterreader.device_lib.meter_plain.serial', autospec=True)
-    def test_init_fail(self, mock_serial, mock_listdir):
-        mserial = MockSerial(b'', [b'\x00', b'foobar'])
-        mock_serial.Serial.return_value = mserial
-        mock_listdir.return_value = ['ttyUSB0']
-        sml_meter = PlainReader('99999999')
-        sample = sml_meter.poll()
+    def test_init_fail(self):
+        reader = PlainReader("99999999", "loop://")
+        sample = reader.poll()
         self.assertIsNone(sample)
-        self.assertIsNone(sml_meter.tty_path)
-        self.assertEqual(1, mserial.close_called)
-        self.assertEqual(40 * b'\00' + b"/?!\x0D\x0A", mserial.written)
 
-    @mock.patch('pymeterreader.device_lib.meter_plain.os.listdir', autospec=True)
-    @mock.patch('pymeterreader.device_lib.meter_plain.serial', autospec=True)
-    def test_detect(self, mock_serial, mock_listdir):
-        mserial = MockSerial(b'', [b'\x00', TEST_FRAME])
-        mock_serial.Serial.return_value = mserial
-        mock_listdir.return_value = ['ttyUSB0']
-        devices = [Device("dummy", "/dev/dummy", "dummyprot", [])]
-        devices.extend(PlainReader.detect())
-        self.assertEqual(devices[0].identifier, 'dummy')
-        self.assertEqual(devices[1].identifier, '99999999')
-        self.assertIn(ChannelValue('6.8', '0006047', 'kWh'), devices[1].channels)
-        self.assertIn(ChannelValue('6.26', '00428.35', 'm3'), devices[1].channels)
-        self.assertEqual('/dev/ttyUSB0', devices[1].access_path)
+    @mock.patch('serial.tools.list_ports.grep', autospec=True)
+    @mock.patch('serial.serial_for_url', autospec=True)
+    def test_detect(self, serial_for_url_mock, list_ports_mock):
+        # Create serial instances with unmocked import
+        unconnected_serial_instance = serial_for_url("loop://", baudrate=2400, timeout=5)
+        shared_serial_instance = serial_for_url("loop://", baudrate=2400, timeout=5)
+        # Mock serial_for_url to return an unconnected instance and one with the simulator
+        serial_for_url_mock.side_effect = [shared_serial_instance, unconnected_serial_instance, shared_serial_instance]
+        # Create a Simulator. The simulator makes the first call to serial_for_url() and receives the shared instance
+        simulator = SimplePlainMeterSimulator()
+        simulator.start()
+        # Mock available serial ports
+        list_ports_mock.return_value = [ListPortInfo("/dev/ttyUSB0"), ListPortInfo("/dev/ttyUSB1")]
+        # Start device detection. This triggers the remaining two calls to serial_for_url()
+        devices = PlainReader("irrelevent", "unused://").detect()
+        simulator.stop()
+        self.assertFalse(shared_serial_instance.is_open)
+        self.assertEqual(len(devices), 1)
+        self.assertIn(Device(simulator.get_meter_id(), "/dev/ttyUSB1", "PLAIN", simulator.get_channels()),
+                      devices)
 
 
 if __name__ == '__main__':
