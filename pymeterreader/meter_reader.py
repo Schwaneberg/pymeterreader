@@ -92,6 +92,8 @@ def map_configuration(config: dict) -> tp.List[MeterReaderNode]:  # noqa MC0001
                             logging.warning(f"Could not read meter id {meter_id} using protocol {protocol}.")
         except KeyError as err:
             logging.error(f"Error while processing configuration: {err}")
+        except TypeError as err:
+            logging.error(f"Missing required parameter in the configuration: {err}")
     else:
         logging.error("Config file is incomplete.")
     return meter_reader_nodes
