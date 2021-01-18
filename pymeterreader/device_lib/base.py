@@ -5,7 +5,7 @@ Created 2020.10.12 by Oliver Schwaneberg
 import typing as tp
 from abc import ABC, abstractmethod
 from logging import warning
-from pymeterreader.device_lib.common import Sample, Device
+from pymeterreader.device_lib.common import Sample, Device, strip
 
 
 class BaseReader(ABC):
@@ -42,3 +42,12 @@ class BaseReader(ABC):
         :return: Sample, if successful else None
         """
         raise NotImplementedError("This is just an abstract class.")
+
+    def meter_id_matches(self, sample: Sample) -> bool:
+        """
+        Compare the meter_id of this Reader to the one supplied in the sample
+        """
+        if strip(str(self.meter_id)) in strip(str(sample.meter_id)):
+            return True
+        warning(f"Meter ID in {self.PROTOCOL} sample {sample.meter_id} does not match expected ID {self.meter_id}")
+        return False

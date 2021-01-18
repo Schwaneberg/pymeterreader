@@ -2,12 +2,12 @@
 SML Reader
 Created 2020.10.12 by Oliver Schwaneberg
 """
-from logging import error, warning
+from logging import error
 import typing as tp
 import serial
 from sml import SmlBase, SmlFrame, SmlListEntry
 from pymeterreader.device_lib.serial_reader import SerialReader
-from pymeterreader.device_lib.common import Sample, strip, Device, ChannelValue
+from pymeterreader.device_lib.common import Sample, Device, ChannelValue
 
 
 class SmlReader(SerialReader):
@@ -38,10 +38,8 @@ class SmlReader(SerialReader):
         """
         sample = self.__fetch_sample()
         if sample is not None:
-            if strip(self.meter_id) in strip(sample.meter_id):
+            if self.meter_id_matches(sample):
                 return sample
-            else:
-                warning(f"Meter ID in SML frame {sample.meter_id} does not match expected ID {self.meter_id}")
         return None
 
     def __fetch_sample(self) -> tp.Optional[Sample]:

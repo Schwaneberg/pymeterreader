@@ -3,10 +3,10 @@ Plain Reader
 Created 2020.10.12 by Oliver Schwaneberg
 """
 import re
-from logging import debug, error, warning
+from logging import debug, error
 import typing as tp
 import serial
-from pymeterreader.device_lib.common import Sample, Device, strip, ChannelValue
+from pymeterreader.device_lib.common import Sample, Device, ChannelValue
 from pymeterreader.device_lib.serial_reader import SerialReader
 
 
@@ -47,10 +47,8 @@ class PlainReader(SerialReader):
         """
         sample = self.__fetch_sample()
         if sample is not None:
-            if strip(self.meter_id) in strip(sample.meter_id):
+            if self.meter_id_matches(sample):
                 return sample
-            else:
-                warning(f"Meter ID in frame {sample.meter_id} does not match expected ID {self.meter_id}")
         return None
 
     def __fetch_sample(self) -> tp.Optional[Sample]:
