@@ -13,7 +13,6 @@ class BaseReader(ABC):
     Implementation Base for a Meter Protocol
     """
     PROTOCOL = "ABSTRACT"
-    BOUND_INTERFACES = set()
 
     @abstractmethod
     def __init__(self, meter_id: tp.Union[str, int], **kwargs) -> None:
