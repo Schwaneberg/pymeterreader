@@ -1,10 +1,11 @@
 """
-Commmon code for all readers
+Common code for all readers
 """
 from time import time
 import typing as tp
 from string import digits, ascii_letters, punctuation
-legal_characters = digits + ascii_letters + punctuation
+
+LEGAL_CHARACTERS = digits + ascii_letters + punctuation
 
 
 class Sample:
@@ -32,9 +33,9 @@ class Device:
 
 def strip(string: str) -> str:
     """
-    Strip irrelevant characters from identifiaction
+    Strip irrelevant characters from identification
     :rtype: object
     :param string: original string
     :return: stripped string
     """
-    return ''.join([char for char in string if char in legal_characters]).strip().upper()
+    return ''.join([char for char in string if char in LEGAL_CHARACTERS]).strip().upper()
