@@ -16,7 +16,7 @@ class BaseReader(ABC):
     BOUND_INTERFACES = set()
 
     @abstractmethod
-    def __init__(self, meter_id: tp.Union[str, int], **kwargs):
+    def __init__(self, meter_id: tp.Union[str, int], **kwargs) -> None:
         """
         Initialize Meter Reader object
         :param meter_id: meter identification string (e.g. '1 EMH00 12345678')

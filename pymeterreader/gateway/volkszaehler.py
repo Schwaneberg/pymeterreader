@@ -18,7 +18,7 @@ class VolkszaehlerGateway(BaseGateway):
     DATA_PATH = "data"
     SUFFIX = ".json"
 
-    def __init__(self, middleware_url: str, interpolate: bool = True, **kwargs):
+    def __init__(self, middleware_url: str, interpolate: bool = True, **kwargs) -> None:
         """
          Initialize Volkszaehler Gateway
          :param middleware_url: address of middleware
@@ -99,7 +99,7 @@ class VolkszaehlerGateway(BaseGateway):
         return {}
 
     @staticmethod
-    def urljoin(*args):
+    def urljoin(*args: str) -> str:
         url = '/'.join([arg.strip('/') for arg in args])
         if not url.startswith('http'):
             url = f'http://{url}'

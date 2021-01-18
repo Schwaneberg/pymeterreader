@@ -49,7 +49,7 @@ class Bme280Reader(BaseReader):
 
     __I2C_LOCK = Lock()
 
-    def __init__(self, meter_id: str, **kwargs: int):
+    def __init__(self, meter_id: str, **kwargs: int) -> None:
         """
         Initialize BME280 Reader object
         :param meter_id: is a i2c bus id in this case

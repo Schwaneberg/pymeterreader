@@ -10,7 +10,7 @@ import argparse
 import humanfriendly
 from yaml import load, FullLoader
 from pymeterreader.core import MeterReaderTask, MeterReaderNode
-from pymeterreader.device_lib import strip, SmlReader, PlainReader, Bme280Reader
+from pymeterreader.device_lib import strip, SmlReader, PlainReader, Bme280Reader, BaseReader
 from pymeterreader.gateway import *
 
 PARSER = argparse.ArgumentParser(description='MeterReader reads out supported devices '
@@ -43,21 +43,21 @@ def map_configuration(config: dict) -> tp.List[MeterReaderNode]:  # noqa MC0001
     if 'devices' in config and 'middleware' in config:
         try:
             middleware_type = config.get('middleware').pop('type')
-            middleware_configuration = config.get('middleware')
+            middleware_configuration: dict = config.get('middleware')
             if middleware_type == 'volkszaehler':
-                gateway = VolkszaehlerGateway(**middleware_configuration)
+                gateway: tp.Optional[BaseGateway] = VolkszaehlerGateway(**middleware_configuration)
             elif middleware_type == 'debug':
                 gateway = DebugGateway(**middleware_configuration)
             else:
                 logging.error(f'Middleware "{middleware_type}" not supported!')
                 gateway = None
-            if gateway:
+            if gateway is not None:
                 for device in config.get('devices').values():
                     meter_id = strip(str(device.pop('id')))
                     protocol = strip(device.pop('protocol'))
                     configuration_channels = device.pop('channels')
                     if protocol == 'SML':
-                        reader = SmlReader(meter_id, **device)
+                        reader: tp.Optional[BaseReader] = SmlReader(meter_id, **device)
                     elif protocol == 'PLAIN':
                         reader = PlainReader(meter_id, **device)
                     elif protocol == 'BME280':

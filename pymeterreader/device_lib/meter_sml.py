@@ -21,7 +21,7 @@ class SmlReader(SerialReader):
     __START_SEQ = b'\x1b\x1b\x1b\x1b\x01\x01\x01\x01'
     __END_SEQ = b'\x1b\x1b\x1b\x1b'
 
-    def __init__(self, meter_id: str, tty: str, **kwargs):
+    def __init__(self, meter_id: str, tty: str, **kwargs) -> None:
         """
         Initialize SML Meter Reader object
         (See https://wiki.volkszaehler.org/software/obis for OBIS code mapping)

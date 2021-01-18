@@ -12,7 +12,7 @@ class BaseGateway(ABC):
     Implementation Base for an upload Gateway
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         if kwargs:
             warning(f'Unknown parameter{"s" if len(kwargs) > 1 else ""}:'
                     f' {", ".join(kwargs.keys())}')

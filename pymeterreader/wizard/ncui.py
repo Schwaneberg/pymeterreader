@@ -4,6 +4,7 @@ Curses setup wizard
 import logging
 import platform
 import re
+import typing as tp
 from os.path import exists
 from pathlib import Path
 from subprocess import run
@@ -19,21 +20,21 @@ class Wizard:
     CONFIG_FILE_NAME = "pymeterreader.yaml"
     POSIX_CONFIG_PATH = Path("/etc") / CONFIG_FILE_NAME
 
-    def __init__(self):
+    def __init__(self) -> None:
         logging.basicConfig(level=logging.INFO)
         self.url = "http://localhost/middleware.php"
         self.gateway = VolkszaehlerGateway(self.url)
         self.gateway_channels = self.gateway.get_channels()
-        self.menu = None
+        self.menu: CursesMenu
         print("Detecting meters...")
         self.meters = detect()
-        self.channel_config = {}
+        self.channel_config: tp.Dict[str, tp.Dict[str, tp.Union[str, tp.Dict]]] = {}
         self.restart_ui = True
         while self.restart_ui:
             self.restart_ui = False
             self.create_menu()
 
-    def input_gw(self, text):
+    def input_gw(self, text) -> None:
         def is_valid_url():
             return re.match(r"^https?://[/\w\d.]+.php$", self.url)
         self.restart_ui = True
@@ -58,7 +59,7 @@ class Wizard:
             self.menu.stdscr.addstr(3, 0, f"Unable to find any public channels at '{self.url}'.")
         self.menu.stdscr.getkey()
 
-    def create_menu(self):
+    def create_menu(self) -> None:
         # Create the menu
         self.menu = CursesMenu("PyMeterReader Configuration Wizard", "Choose item to configure")
 
@@ -97,7 +98,7 @@ class Wizard:
 
         self.menu.show()
 
-    def __register_service(self):
+    def __register_service(self) -> None:
         self.menu.clear_screen()
         if platform.system() != "Linux":
             self.menu.stdscr.addstr(0, 0, "Systemd Service registration is only supported on Linux!")
@@ -136,13 +137,13 @@ class Wizard:
         self.menu.stdscr.addstr(6, 0, "(press any key)")
         self.menu.stdscr.getkey()
 
-    def __clear(self):
+    def __clear(self) -> None:
         """
         Remove channel mappings
         """
         self.channel_config.clear()
 
-    def __safe_mapping(self):
+    def __safe_mapping(self) -> None:
         """
         Save yaml to system
         """
@@ -163,7 +164,7 @@ class Wizard:
         self.menu.stdscr.addstr(1, 0, "(press any key)")
         self.menu.stdscr.getkey()
 
-    def __view_mapping(self):
+    def __view_mapping(self) -> None:
         self.menu.clear_screen()
         self.menu.stdscr.addstr(0, 0, "Mapped channels:")
         row = 2
@@ -174,7 +175,7 @@ class Wizard:
         self.menu.stdscr.addstr(row, 0, "(press any key)")
         self.menu.stdscr.getkey()
 
-    def __assign(self, meter: Device, channel: ChannelValue, uuid: str, interval: str):
+    def __assign(self, meter: Device, channel: ChannelValue, uuid: tp.Optional[str], interval: str) -> None:
         if uuid is None:
             self.menu.clear_screen()
             uuid = input("Enter private UUID: ")

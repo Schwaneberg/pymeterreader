@@ -22,7 +22,7 @@ class PlainReader(SerialReader):
 
     # pylint: disable=too-many-arguments
     def __init__(self, meter_id: str, tty: str, baudrate: int = 2400, bytesize=7, initial_baudrate: int = 300,
-                 parity="EVEN", send_wakeup_zeros: int = 40, **kwargs):
+                 parity="EVEN", send_wakeup_zeros: int = 40, **kwargs) -> None:
         """
         Initialize Plain Meter Reader object
         (See https://wiki.volkszaehler.org/software/obis for OBIS code mapping)
