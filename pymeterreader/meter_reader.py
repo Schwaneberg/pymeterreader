@@ -257,31 +257,32 @@ def map_configuration(config: dict) -> tp.List[MeterReaderNode]:  # noqa MC0001
                     else:
                         logging.error(f'Unsupported protocol {protocol}')
                         reader = None
-                    sample = reader.poll()
-                    if sample is not None:
-                        available_channels = {}
-                        for variable in sample.channels:
-                            obj_name = variable.get('objName', '')
-                            for channel_name, channel in channels.items():
-                                interval = humanfriendly_time_parser(channel.get('interval', '1h'))
-                                uuid = channel.get('uuid')
-                                factor = channel.get('factor', 1)
-                                if strip(str(channel_name)) in strip(str(obj_name)):
-                                    # Replacing config string with exact match
-                                    available_channels[obj_name] = (uuid, interval, factor)
-                        if available_channels:
-                            meter_reader_node = MeterReaderNode(available_channels,
-                                                                reader,
-                                                                gateway)
-                            # Perform first push to middleware
-                            if meter_reader_node.poll_and_push(sample):
-                                meter_reader_nodes.append(meter_reader_node)
+                    if reader is not None:
+                        sample = reader.poll()
+                        if sample is not None:
+                            available_channels = {}
+                            for variable in sample.channels:
+                                obj_name = variable.get('objName', '')
+                                for channel_name, channel in channels.items():
+                                    interval = humanfriendly_time_parser(channel.get('interval', '1h'))
+                                    uuid = channel.get('uuid')
+                                    factor = channel.get('factor', 1)
+                                    if strip(str(channel_name)) in strip(str(obj_name)):
+                                        # Replacing config string with exact match
+                                        available_channels[obj_name] = (uuid, interval, factor)
+                            if available_channels:
+                                meter_reader_node = MeterReaderNode(available_channels,
+                                                                    reader,
+                                                                    gateway)
+                                # Perform first push to middleware
+                                if meter_reader_node.poll_and_push(sample):
+                                    meter_reader_nodes.append(meter_reader_node)
+                                else:
+                                    logging.error(f"Not registering node for meter id {reader.meter_id}.")
                             else:
-                                logging.error(f"Not registering node for meter id {reader.meter_id}.")
+                                logging.warning(f"Cannot register channels for meter {meter_id}.")
                         else:
-                            logging.warning(f"Cannot register channels for meter {meter_id}.")
-                    else:
-                        logging.warning(f"Could not read meter id {meter_id} using protocol {protocol}.")
+                            logging.warning(f"Could not read meter id {meter_id} using protocol {protocol}.")
         except KeyError as err:
             logging.error(f"Error while processing configuration: {err}")
     else:
