@@ -4,6 +4,7 @@ Serial Reader (BaseReader)
 import typing as tp
 from abc import abstractmethod
 from logging import warning, info, error
+from threading import Lock
 import serial
 import serial.tools.list_ports
 from pymeterreader.device_lib.common import Device
@@ -32,6 +33,7 @@ class SerialReader(BaseReader):
         super().__init__(**kwargs)
         self.serial_url = meter_address
         self._serial_instance = None
+        self._serial_lock = Lock()
         self.baudrate = baudrate
         self.bytesize = bytesize
         self.stopbits = stopbits

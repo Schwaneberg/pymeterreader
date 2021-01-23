@@ -47,14 +47,16 @@ class SmlReader(SerialReader):
         :return: Sample, if successful
         """
         try:
-            # Open, Use and Close tty_instance
-            with self.initialize_serial_port() as serial_port:
-                # Discard Data until finding a Start Sequence in the buffer
-                serial_port.read_until(expected=self.__START_SEQ)
-                # Read Data up to End Sequence
-                payload = serial_port.read_until(expected=self.__END_SEQ)
-                # Read the four subsequent Bytes(Checksum+Number of Fill Bytes)
-                trailer = serial_port.read(4)
+            # Acquire Lock to prevent pySerial exceptions when trying to access the serial port concurrently
+            with self._serial_lock:
+                # Open, Use and Close tty_instance
+                with self.initialize_serial_port() as serial_port:
+                    # Discard Data until finding a Start Sequence in the buffer
+                    serial_port.read_until(expected=self.__START_SEQ)
+                    # Read Data up to End Sequence
+                    payload = serial_port.read_until(expected=self.__END_SEQ)
+                    # Read the four subsequent Bytes(Checksum+Number of Fill Bytes)
+                    trailer = serial_port.read(4)
             # Reconstruct original SML Structure by combining the extracted sections
             sml_reconstructed = self.__START_SEQ + payload + trailer
             # Test if SML Start is well formatted

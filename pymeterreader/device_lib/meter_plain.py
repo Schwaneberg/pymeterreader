@@ -56,24 +56,26 @@ class PlainReader(SerialReader):
         :return: Sample, if successful
         """
         try:
-            # Open, Use and Close tty_instance
-            with self.initialize_serial_port() as serial_port:
-                # Send wakeup Sequence
-                if self.__wakeup_zeros > 0:
-                    # Set wakeup baudrate
-                    serial_port.baudrate = self.__initial_baudrate
-                    # Send wakeup sequence
-                    serial_port.write(b"\x00" * self.__wakeup_zeros)
-                    # Send request message
-                    serial_port.write(self.__START_SEQ)
-                    # Clear send buffer
-                    serial_port.flush()
-                    # Read identification message
-                    init_bytes: bytes = serial_port.readline()
-                # Change baudrate to higher speed
-                serial_port.baudrate = self.__baudrate
-                # Read response
-                response_bytes: bytes = serial_port.readline()
+            # Acquire Lock to prevent pySerial exceptions when trying to access the serial port concurrently
+            with self._serial_lock:
+                # Open, Use and Close tty_instance
+                with self.initialize_serial_port() as serial_port:
+                    # Send wakeup Sequence
+                    if self.__wakeup_zeros > 0:
+                        # Set wakeup baudrate
+                        serial_port.baudrate = self.__initial_baudrate
+                        # Send wakeup sequence
+                        serial_port.write(b"\x00" * self.__wakeup_zeros)
+                        # Send request message
+                        serial_port.write(self.__START_SEQ)
+                        # Clear send buffer
+                        serial_port.flush()
+                        # Read identification message
+                        init_bytes: bytes = serial_port.readline()
+                    # Change baudrate to higher speed
+                    serial_port.baudrate = self.__baudrate
+                    # Read response
+                    response_bytes: bytes = serial_port.readline()
             # Decode response
             init: str = init_bytes.decode("utf-8")
             response: str = response_bytes.decode("utf-8")
