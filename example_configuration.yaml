@@ -4,8 +4,8 @@ devices:
       1.8.0:
         uuid: c07ef180-e4c6-11e9-95a6-434024b862ef
         interval: 5m
-    tty: /dev/serial0 # All pySerial URL formats are supported(https://pyserial.readthedocs.io/en/latest/url_handlers.html#urls)
-    id: 1 EMH00 12345678
+    meter_address: /dev/serial0 # All pySerial URL formats are supported(https://pyserial.readthedocs.io/en/latest/url_handlers.html#urls)
+    meter_id: 1 EMH00 12345678 # Optional Check that enforces a specific meter id
     protocol: sml
     baudrate: 9600
   heat meter:
@@ -14,8 +14,9 @@ devices:
         uuid: 83b52b26-1c1a-444d-bf46-d9c702fee644
         factor: 1000  # convert kWh to Wh
         interval: 12h
-    id: 888777666
+    meter_id: 888777666 # Optional Check that enforces a specific meter id
     protocol: plain
+    meter_address: rfc2217://1.2.3.4:4001
   climate basement:
     channels:
       humidity:
@@ -27,7 +28,7 @@ devices:
       pressure:
         uuid: 250ca04a-02ee-4a1b-98dd-3423b21008b7
         interval: 1h
-    id: 0x76  # Default I2C address
+    meter_address: 0x76  # Default I2C address
     protocol: BME280  # A sensor, not a real meter
 
 middleware:

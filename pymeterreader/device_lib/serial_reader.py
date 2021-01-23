@@ -17,12 +17,11 @@ class SerialReader(BaseReader):
 
     # pylint: disable=too-many-arguments
     @abstractmethod
-    def __init__(self, meter_id: tp.Union[str, int], tty: str, baudrate: int = 9600, bytesize: int = 8,
+    def __init__(self, meter_address: str, baudrate: int = 9600, bytesize: int = 8,
                  parity: str = "None", stopbits: int = 1, timeout: int = 5, **kwargs) -> None:
         """
         Initialize SerialReader object
-        :param meter_id: meter identification string (e.g. '1 EMH00 12345678')
-        :param tty: URL specifying the serial Port as required by pySerial serial_for_url()
+        :param meter_address: URL specifying the serial Port as required by pySerial serial_for_url()
         :param baudrate: serial baudrate (Default: 9600)
         :param bytesize: word size on the serial port (Default: 8)
         :param parity: serial parity, EVEN, ODD or NONE (Default: NONE)
@@ -30,8 +29,8 @@ class SerialReader(BaseReader):
         :param timeout: timeout for reading from the serial port (Default: 5s)
         :kwargs: unparsed parameters
         """
-        super().__init__(meter_id, **kwargs)
-        self.serial_url = tty
+        super().__init__(**kwargs)
+        self.serial_url = meter_address
         self._serial_instance = None
         self.baudrate = baudrate
         self.bytesize = bytesize
@@ -72,7 +71,7 @@ class SerialReader(BaseReader):
                 discovered_tty_url = possible_port_info.device
                 # Create new Instance of the current SerialReader implementation
                 # This ensures that the internal state is reset for every discovery
-                serial_reader_implementation = self.__class__("irrelevant", discovered_tty_url, **kwargs)
+                serial_reader_implementation = self.__class__(discovered_tty_url, **kwargs)
                 # Utilize SubClass._discover() to handle implementation specific discovery
                 # pylint: disable=protected-access
                 device = serial_reader_implementation._discover()

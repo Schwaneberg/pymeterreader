@@ -49,10 +49,10 @@ class Bme280Reader(BaseReader):
 
     __I2C_LOCK = Lock()
 
-    def __init__(self, meter_id: str, **kwargs: int) -> None:
+    def __init__(self, meter_address: tp.Union[str, int], **kwargs: int) -> None:
         """
         Initialize BME280 Reader object
-        :param meter_id: is a i2c bus id in this case
+        :param meter_address: I2C device address
         """
         # Test if smbus library has been imported
         try:
@@ -61,24 +61,24 @@ class Bme280Reader(BaseReader):
             error(
                 "Could not import smbus library! This library is missing and Bme280Reader can not function without it!")
             raise
+        super().__init__(**kwargs)
         if kwargs:
             warning(f"Bme280Reader: Unknown parameter{'s' if len(kwargs) > 1 else ''}: {', '.join(kwargs.keys())}")
-        if isinstance(meter_id, str):
-            if meter_id.lower().startswith('0x'):
-                meter_id = int(meter_id.lower(), 16)
-            elif meter_id.isnumeric():
-                meter_id = int(meter_id)
+        if isinstance(meter_address, str):
+            if meter_address.lower().startswith('0x'):
+                self.i2c_address = int(meter_address.lower(), 16)
+            elif meter_address.isnumeric():
+                self.i2c_address = int(meter_address)
             else:
-                meter_id = 0x76
-                error(f'Bme280Reader: Cannot convert id {meter_id} to int.')
-        if 127 < meter_id < 256:
+                self.i2c_address = 0x76
+                error(f'Bme280Reader: Cannot convert id {meter_address} to int.')
+        if 127 < self.i2c_address < 256:
             warning("Bme280Reader: 8 bit address defined!")
-        elif 255 < meter_id < 1024:
+        elif 255 < self.i2c_address < 1024:
             warning("Bme280Reader: 10 bit address defined!")
-        elif meter_id >= 1024:
+        elif self.i2c_address >= 1024:
             error("Bme380Reader: Illegal I2C address defined. Default to 0x76.")
-            meter_id = 0x76
-        super().__init__(meter_id, **kwargs)
+            self.i2c_address = 0x76
 
     def poll(self) -> tp.Optional[Sample]:
         """
@@ -103,16 +103,16 @@ class Bme280Reader(BaseReader):
 
                 # Oversample setting for humidity register - page 26
                 oversample_hum = 2
-                bus.write_byte_data(self.meter_id, reg_control_hum, oversample_hum)
+                bus.write_byte_data(self.i2c_address, reg_control_hum, oversample_hum)
 
                 control = oversample_temp << 5 | oversample_pres << 2 | mode
-                bus.write_byte_data(self.meter_id, reg_control, control)
+                bus.write_byte_data(self.i2c_address, reg_control, control)
 
                 # Read blocks of calibration data from EEPROM
                 # See Page 22 data sheet
-                cal1 = bus.read_i2c_block_data(self.meter_id, 0x88, 24)
-                cal2 = bus.read_i2c_block_data(self.meter_id, 0xA1, 1)
-                cal3 = bus.read_i2c_block_data(self.meter_id, 0xE1, 7)
+                cal1 = bus.read_i2c_block_data(self.i2c_address, 0x88, 24)
+                cal2 = bus.read_i2c_block_data(self.i2c_address, 0xA1, 1)
+                cal3 = bus.read_i2c_block_data(self.i2c_address, 0xE1, 7)
 
                 dig = COMP_PARAM_STRUCT.parse(bytes(cal1) + bytes(cal2) + bytes(cal3))
                 dig2 = AUX_STRUCT.parse(bytes([dig.bitfield.n1 << 4 | dig.bitfield.n2,
@@ -125,7 +125,7 @@ class Bme280Reader(BaseReader):
                 time.sleep(wait_time / 1000)  # Wait the required time
 
                 # Read temperature/pressure/humidity
-                data = bus.read_i2c_block_data(self.meter_id, reg_data, 8)
+                data = bus.read_i2c_block_data(self.i2c_address, reg_data, 8)
                 bus.close()
                 pres_raw = (data[0] << 12) | (data[1] << 4) | (data[2] >> 4)
                 temp_raw = (data[3] << 12) | (data[4] << 4) | (data[5] >> 4)
@@ -171,7 +171,7 @@ class Bme280Reader(BaseReader):
                 if isinstance(err, PermissionError):
                     error("Bme280Reader: Insufficient permissions to access I2C bus.")
                 else:
-                    error(f"Bme280Reader: Cannot detect BME280 at add {self.meter_id:02x}")
+                    error(f"Bme280Reader: Cannot detect BME280 at add {self.i2c_address:02x}")
         return None
 
     def read_chip_info(self) -> tp.Optional[tp.Tuple[int, int]]:
@@ -182,7 +182,7 @@ class Bme280Reader(BaseReader):
         reg_id = 0xD0
         try:
             bus = smbus.SMBus(1)
-            chip_id, chip_version = bus.read_i2c_block_data(self.meter_id, reg_id, 2)
+            chip_id, chip_version = bus.read_i2c_block_data(self.i2c_address, reg_id, 2)
             debug(f"BME280 detected with chip id {chip_id} and version {chip_version}.")
             bus.close()
             return chip_id, chip_version
@@ -190,7 +190,7 @@ class Bme280Reader(BaseReader):
             if isinstance(err, PermissionError):
                 error("Bme280Reader: Insufficient permissions to access I2C bus.")
             else:
-                error(f"Bme280Reader: Cannot detect BME280 at add {self.meter_id:02x}")
+                error(f"Bme280Reader: Cannot detect BME280 at add {self.i2c_address:02x}")
         return None
 
     @staticmethod

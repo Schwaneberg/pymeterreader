@@ -21,15 +21,14 @@ class SmlReader(SerialReader):
     __START_SEQ = b'\x1b\x1b\x1b\x1b\x01\x01\x01\x01'
     __END_SEQ = b'\x1b\x1b\x1b\x1b'
 
-    def __init__(self, meter_id: str, tty: str, **kwargs) -> None:
+    def __init__(self, meter_address: str, **kwargs) -> None:
         """
         Initialize SML Meter Reader object
         (See https://wiki.volkszaehler.org/software/obis for OBIS code mapping)
-        :param meter_id: meter identification string (e.g. '1 EMH00 12345678')
-        :param tty: URL specifying the serial Port as required by pySerial serial_for_url()
+        :param meter_address: URL specifying the serial Port as required by pySerial serial_for_url()
         :kwargs: parameters for the SerialReader superclass
         """
-        super().__init__(meter_id, tty, **kwargs)
+        super().__init__(meter_address, **kwargs)
 
     def poll(self) -> tp.Optional[Sample]:
         """
@@ -81,7 +80,7 @@ class SmlReader(SerialReader):
     def detect(**kwargs) -> tp.List[Device]:
         # Instantiate this Reader class and call SerialReader.detect_serial_devices()
         # pylint: disable=protected-access
-        return SmlReader("irrelevant", "loop://")._detect_serial_devices(**kwargs)
+        return SmlReader("loop://")._detect_serial_devices(**kwargs)
 
     def _discover(self) -> tp.Optional[Device]:
         """

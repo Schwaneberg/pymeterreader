@@ -21,13 +21,12 @@ class PlainReader(SerialReader):
     __START_SEQ = b"/?!\x0D\x0A"
 
     # pylint: disable=too-many-arguments
-    def __init__(self, meter_id: str, tty: str, baudrate: int = 2400, bytesize=7, initial_baudrate: int = 300,
+    def __init__(self, meter_address: str, baudrate: int = 2400, bytesize=7, initial_baudrate: int = 300,
                  parity="EVEN", send_wakeup_zeros: int = 40, **kwargs) -> None:
         """
         Initialize Plain Meter Reader object
         (See https://wiki.volkszaehler.org/software/obis for OBIS code mapping)
-        :param meter_id: meter identification string (e.g. '1 EMH00 12345678')
-        :param tty: URL specifying the serial Port as required by pySerial serial_for_url()
+        :param meter_address: URL specifying the serial Port as required by pySerial serial_for_url()
         :param baudrate: baudrate used to receive the measurement (Default: 2400)
         :param bytesize: word size on the serial port (Default: 7)
         :param initial_baudrate: baudrate used to request a measurement (Default: 300)
@@ -35,7 +34,7 @@ class PlainReader(SerialReader):
         :param send_wakeup_zeros: number of zeros to send ahead of the request string (Default: 40)
         :kwargs: parameters for the SerialReader superclass
         """
-        super().__init__(meter_id, tty, baudrate=initial_baudrate, bytesize=bytesize, parity=parity, **kwargs)
+        super().__init__(meter_address, baudrate=initial_baudrate, bytesize=bytesize, parity=parity, **kwargs)
         self.__wakeup_zeros = send_wakeup_zeros
         self.__initial_baudrate = initial_baudrate
         self.__baudrate = baudrate
@@ -93,7 +92,7 @@ class PlainReader(SerialReader):
     def detect(**kwargs) -> tp.List[Device]:
         # Instantiate this Reader class and call SerialReader.detect_serial_devices()
         # pylint: disable=protected-access
-        return PlainReader("irrelevant", "loop://")._detect_serial_devices(**kwargs)
+        return PlainReader("loop://")._detect_serial_devices(**kwargs)
 
     def _discover(self) -> tp.Optional[Device]:
         """

@@ -181,8 +181,9 @@ class Wizard:
             uuid = input("Enter private UUID: ")
         if meter.meter_id not in self.channel_config:
             self.channel_config[meter.meter_id] = {'channels': {},
-                                                     'id': meter.meter_id,
-                                                     'protocol': meter.protocol}
+                                                   'protocol': meter.protocol,
+                                                   'meter_address': meter.meter_address,
+                                                   'meter_id': meter.meter_id}
         self.channel_config[meter.meter_id]['channels'][channel.channel_name] = {
             'uuid': uuid,
             'interval': interval

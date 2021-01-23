@@ -38,7 +38,7 @@ class TestSmlReader(unittest.TestCase):
         serial_for_url_mock.return_value = shared_serial_instance
         simulator = SmlMeterSimulator()
         simulator.start()
-        reader = SmlReader("1EMH004921570", "loop://")
+        reader = SmlReader("loop://", meter_id="1EMH004921570")
         sample = reader.poll()
         simulator.stop()
         self.assertFalse(shared_serial_instance.is_open)
@@ -46,7 +46,7 @@ class TestSmlReader(unittest.TestCase):
         self.assertEqual(sample.channels, simulator.get_channels())
 
     def test_init_fail(self):
-        reader = SmlReader("1EMH004921570", "loop://")
+        reader = SmlReader("loop://", meter_id="1EMH004921570")
         sample = reader.poll()
         self.assertIsNone(sample)
 
@@ -64,7 +64,7 @@ class TestSmlReader(unittest.TestCase):
         # Mock available serial ports
         list_ports_mock.return_value = [ListPortInfo("/dev/ttyUSB0"), ListPortInfo("/dev/ttyUSB1")]
         # Start device detection. This triggers the remaining two calls to serial_for_url()
-        devices = SmlReader("irrelevent", "unused://").detect()
+        devices = SmlReader("unused://").detect()
         simulator.stop()
         self.assertFalse(shared_serial_instance.is_open)
         self.assertEqual(len(devices), 1)

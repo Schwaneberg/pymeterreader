@@ -53,15 +53,14 @@ def map_configuration(config: dict) -> tp.List[MeterReaderNode]:  # noqa MC0001
                 gateway = None
             if gateway is not None:
                 for device in config.get('devices').values():
-                    meter_id = strip(str(device.pop('id')))
                     protocol = strip(device.pop('protocol'))
                     configuration_channels = device.pop('channels')
                     if protocol == 'SML':
-                        reader: tp.Optional[BaseReader] = SmlReader(meter_id, **device)
+                        reader: tp.Optional[BaseReader] = SmlReader(**device)
                     elif protocol == 'PLAIN':
-                        reader = PlainReader(meter_id, **device)
+                        reader = PlainReader(**device)
                     elif protocol == 'BME280':
-                        reader = Bme280Reader(meter_id, **device)
+                        reader = Bme280Reader(**device)
                     else:
                         logging.error(f'Unsupported protocol {protocol}')
                         reader = None
@@ -87,9 +86,9 @@ def map_configuration(config: dict) -> tp.List[MeterReaderNode]:  # noqa MC0001
                                 else:
                                     logging.error(f"Not registering node for meter id {reader.meter_id}.")
                             else:
-                                logging.warning(f"Cannot register channels for meter {meter_id}.")
+                                logging.warning(f"Cannot register channels for meter {reader.meter_id}.")
                         else:
-                            logging.warning(f"Could not read meter id {meter_id} using protocol {protocol}.")
+                            logging.warning(f"Could not read meter id {reader.meter_id} using protocol {protocol}.")
         except KeyError as err:
             logging.error(f"Error while processing configuration: {err}")
         except TypeError as err:

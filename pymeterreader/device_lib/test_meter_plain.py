@@ -70,14 +70,14 @@ class TestPlainReader(unittest.TestCase):
         serial_for_url_mock.return_value = shared_serial_instance
         simulator = SimplePlainMeterSimulator()
         simulator.start()
-        reader = PlainReader("99999999", "loop://")
+        reader = PlainReader("loop://")
         sample = reader.poll()
         simulator.stop()
         self.assertEqual(sample.meter_id, simulator.get_meter_id())
         self.assertEqual(sample.channels, simulator.get_channels())
 
     def test_init_fail(self):
-        reader = PlainReader("99999999", "loop://")
+        reader = PlainReader("loop://")
         sample = reader.poll()
         self.assertIsNone(sample)
 
@@ -95,7 +95,7 @@ class TestPlainReader(unittest.TestCase):
         # Mock available serial ports
         list_ports_mock.return_value = [ListPortInfo("/dev/ttyUSB0"), ListPortInfo("/dev/ttyUSB1")]
         # Start device detection. This triggers the remaining two calls to serial_for_url()
-        devices = PlainReader("irrelevent", "unused://").detect()
+        devices = PlainReader("unused://").detect()
         simulator.stop()
         self.assertFalse(shared_serial_instance.is_open)
         self.assertEqual(len(devices), 1)
