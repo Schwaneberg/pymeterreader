@@ -5,6 +5,7 @@ import typing as tp
 from abc import ABC, abstractmethod
 from logging import warning
 
+from pymeterreader.core.channel_description import ChannelDescription
 from pymeterreader.core.channel_upload_info import ChannelUploadInfo
 
 
@@ -28,7 +29,7 @@ class BaseGateway(ABC):
         raise NotImplementedError("Abstract Base for GET")
 
     @abstractmethod
-    def get_channels(self) -> dict:
+    def get_channels(self) -> tp.List[ChannelDescription]:
         raise NotImplementedError("Abstract Base for get_channels")
 
     @staticmethod

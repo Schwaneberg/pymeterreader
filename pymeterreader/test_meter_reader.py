@@ -1,6 +1,8 @@
+import typing as tp
 import unittest
 from unittest import mock
 
+from pymeterreader.core import ChannelDescription
 from pymeterreader.device_lib.common import Sample, ChannelValue
 from pymeterreader.gateway import VolkszaehlerGateway
 from pymeterreader.meter_reader import map_configuration
@@ -37,8 +39,8 @@ class MockedGateway(VolkszaehlerGateway):
     def get(self, uuid):
         return None
 
-    def get_channels(self) -> dict:
-        return {}
+    def get_channels(self) -> tp.List[ChannelDescription]:
+        return []
 
 
 class MockedReader():

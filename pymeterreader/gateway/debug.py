@@ -4,6 +4,7 @@ Uploader that prints to the Console instead of uploading
 import typing as tp
 from logging import debug
 
+from pymeterreader.core.channel_description import ChannelDescription
 from pymeterreader.core.channel_upload_info import ChannelUploadInfo
 from pymeterreader.gateway.basegateway import BaseGateway
 
@@ -29,5 +30,5 @@ class DebugGateway(BaseGateway):
         debug("Received Channel %s @ %s=%s", uuid, timestamp, value)
         return timestamp, value
 
-    def get_channels(self) -> dict:
-        return {}
+    def get_channels(self) -> tp.List[ChannelDescription]:
+        return []
