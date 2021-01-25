@@ -2,7 +2,7 @@ import typing as tp
 import unittest
 from unittest import mock
 
-from pymeterreader.core import ChannelDescription
+from pymeterreader.core import ChannelDescription, ChannelUploadInfo
 from pymeterreader.device_lib.common import Sample, ChannelValue
 from pymeterreader.gateway import VolkszaehlerGateway
 from pymeterreader.meter_reader import map_configuration
@@ -36,7 +36,7 @@ class MockedGateway(VolkszaehlerGateway):
     def post(self, channel, value, sample_timestamp, poll_timestamp):
         return True
 
-    def get(self, uuid):
+    def get_upload_info(self, channel_info: ChannelUploadInfo) -> tp.Optional[ChannelUploadInfo]:
         return None
 
     def get_channels(self) -> tp.List[ChannelDescription]:

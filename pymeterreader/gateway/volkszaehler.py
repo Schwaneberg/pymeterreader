@@ -57,32 +57,32 @@ class VolkszaehlerGateway(BaseGateway):
             error(f'POST {data} to {rest_url}: {req_err}')
         return False
 
-    def get(self, uuid: str) -> tp.Optional[tp.Tuple[int, tp.Union[int, float]]]:
-        rest_url = self.urljoin(self.url, self.DATA_PATH, uuid, self.SUFFIX)
+    def get_upload_info(self, channel_info: ChannelUploadInfo) -> tp.Optional[ChannelUploadInfo]:
+        rest_url = self.urljoin(self.url, self.DATA_PATH, channel_info.uuid, self.SUFFIX)
+        params = {"options": 'raw', "to": int(time() * 1000)}
         try:
-            params = {"options": 'raw',
-                      "to": int(time() * 1000)}
             response = requests.get(rest_url, params=params)
-            if response.status_code != 200:
-                error(f'GET {params} from {rest_url}: {response}')
-            else:
-                debug(f'GET {params} from {rest_url}: {response}')
-        except OSError as err:
-            error(f'Error during GET: {err}')
-            return None
-        parsed = json.loads(response.content.decode('utf-8'))
-        if 'data' in parsed and parsed.get('data').get('rows') > 0:
-            with suppress(IndexError):
-                tuples = parsed.get('data').get('tuples')
-                tuples.sort(key=lambda x: x[0])
-                latest_entry = tuples[-1]
-                time_stamp = int(latest_entry[0]) // 1000
-                value = latest_entry[1]
-                if not isinstance(value, (int, float)):
-                    error(f"{value} is not of type int or float!")
-                    return None
-                info(f"GET {uuid} returned timestamp={time_stamp * 1000} value={value}")
-                return time_stamp, value
+            response.raise_for_status()
+            parsed = json.loads(response.content.decode('utf-8'))
+            if 'data' in parsed and parsed.get('data').get('rows', 0) > 0:
+                with suppress(IndexError):
+                    tuples = parsed.get('data').get('tuples')
+                    tuples.sort(key=lambda x: x[0])
+                    latest_entry = tuples[-1]
+                    timestamp = int(latest_entry[0]) // 1000
+                    value = latest_entry[1]
+                    if not isinstance(value, (int, float)):
+                        error(f"{value} is not of type int or float!")
+                        return None
+                    info(f"GET {channel_info.uuid} returned timestamp={timestamp * 1000} value={value}")
+                    return ChannelUploadInfo(channel_info.uuid, channel_info.interval, channel_info.factor, timestamp,
+                                             value)
+        except requests.exceptions.HTTPError as http_err:
+            error(f'Invalid HTTP Response for GET from {rest_url}: {http_err}')
+        except requests.exceptions.ConnectionError as conn_err:
+            error(f'Could not connect for GET from {rest_url}: {conn_err}')
+        except requests.exceptions.RequestException as req_err:
+            error(f'Unexpected requests error: {req_err}')
         return None
 
     def get_channels(self) -> tp.List[ChannelDescription]:

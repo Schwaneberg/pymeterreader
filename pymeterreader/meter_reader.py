@@ -10,7 +10,7 @@ import typing as tp
 import humanfriendly
 from yaml import load, FullLoader
 
-from pymeterreader.core import MeterReaderTask, MeterReaderNode
+from pymeterreader.core import MeterReaderTask, MeterReaderNode, ChannelUploadInfo
 from pymeterreader.device_lib import strip, SmlReader, PlainReader, Bme280Reader, BaseReader
 from pymeterreader.gateway import BaseGateway, VolkszaehlerGateway, DebugGateway
 
@@ -76,7 +76,11 @@ def map_configuration(config: dict) -> tp.List[MeterReaderNode]:  # noqa MC0001
                                     factor = configuration_channel.get('factor', 1)
                                     if strip(str(configuration_channel_name)) in strip(sample_channel.channel_name):
                                         # Replacing config string with exact match
-                                        available_channels[sample_channel.channel_name] = (uuid, interval, factor)
+                                        available_channels[sample_channel.channel_name] = ChannelUploadInfo(uuid,
+                                                                                                            interval,
+                                                                                                            factor,
+                                                                                                            -1,
+                                                                                                            -1)
                             if available_channels:
                                 meter_reader_node = MeterReaderNode(available_channels,
                                                                     reader,

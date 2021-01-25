@@ -25,10 +25,12 @@ class DebugGateway(BaseGateway):
         debug("Sent Channel %s @ %s=%s", channel.uuid, timestamp, value)
         return True
 
-    def get(self, uuid: str) -> tp.Optional[tp.Tuple[int, tp.Union[int, float]]]:
-        timestamp, value = self.post_timestamps.get(uuid, (0, 0))
-        debug("Received Channel %s @ %s=%s", uuid, timestamp, value)
-        return timestamp, value
+    def get_upload_info(self, channel_info: ChannelUploadInfo) -> tp.Optional[ChannelUploadInfo]:
+        timestamp, value = self.post_timestamps.get(channel_info.uuid, (None, None))
+        if timestamp is not None and value is not None:
+            debug("Received Channel %s @ %s=%s", channel_info.uuid, timestamp, value)
+            return ChannelUploadInfo(channel_info.uuid, channel_info.interval, channel_info.factor, timestamp, value)
+        return None
 
     def get_channels(self) -> tp.List[ChannelDescription]:
         return []

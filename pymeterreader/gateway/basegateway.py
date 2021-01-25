@@ -25,8 +25,8 @@ class BaseGateway(ABC):
         raise NotImplementedError("Abstract Base for POST")
 
     @abstractmethod
-    def get(self, uuid: str) -> tp.Optional[tp.Tuple[int, tp.Union[int, float]]]:
-        raise NotImplementedError("Abstract Base for GET")
+    def get_upload_info(self, channel_info: ChannelUploadInfo) -> tp.Optional[ChannelUploadInfo]:
+        raise NotImplementedError("Abstract Base for get_upload_info")
 
     @abstractmethod
     def get_channels(self) -> tp.List[ChannelDescription]:

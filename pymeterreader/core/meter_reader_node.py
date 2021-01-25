@@ -12,8 +12,7 @@ class MeterReaderNode:
     MeterReaderNode represents a mapping of a meter's channels to uuids.
     """
 
-    def __init__(self, channels: tp.Dict[str, tp.Tuple[str, tp.Union[int, float], tp.Union[int, float]]],
-                 reader: BaseReader, gateway: BaseGateway):
+    def __init__(self, channels: tp.Dict[str, ChannelUploadInfo], reader: BaseReader, gateway: BaseGateway):
         """
         Reader node object connects one or more channels
         from a meter to uuids and upload interval times.
@@ -21,21 +20,14 @@ class MeterReaderNode:
         :param reader: MeterReader object used to poll the meter
         :param gateway: Gateway object used for uploads to the middleware
         """
-        self.__channels = {}
-        for channel, values in channels.items():
-            middleware_entry = gateway.get(values[0])
-            if middleware_entry is None:
-                logging.warning(f"Cannot get last entry for {values[0]}")
-                last_upload = -1
-                last_value = -1
+        self.__channels: tp.Dict[str, ChannelUploadInfo] = {}
+        for channel_name, channel_info in channels.items():
+            gateway_upload_info = gateway.get_upload_info(channel_info)
+            if gateway_upload_info is not None:
+                self.__channels[channel_name] = gateway_upload_info
             else:
-                last_upload = middleware_entry[0]
-                last_value = middleware_entry[1]
-            self.__channels[channel] = ChannelUploadInfo(uuid=values[0],
-                                                         interval=values[1],
-                                                         factor=values[2],
-                                                         last_upload=last_upload,
-                                                         last_value=last_value)
+                logging.warning(f"Cannot get last entry for uuid {channel_info.uuid}")
+                self.__channels[channel_name] = channel_info
         self.__reader = reader
         self.__gateway = gateway
 
