@@ -3,9 +3,11 @@ Plain Reader
 Created 2020.10.12 by Oliver Schwaneberg
 """
 import re
-from logging import debug, error
 import typing as tp
+from logging import debug, error
+
 import serial
+
 from pymeterreader.device_lib.common import Sample, Device, ChannelValue
 from pymeterreader.device_lib.serial_reader import SerialReader
 

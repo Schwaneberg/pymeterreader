@@ -2,16 +2,17 @@
 """
 Primary module
 """
-# pylint: disable=wildcard-import
+import argparse
 import logging
 import signal
 import typing as tp
-import argparse
+
 import humanfriendly
 from yaml import load, FullLoader
+
 from pymeterreader.core import MeterReaderTask, MeterReaderNode
 from pymeterreader.device_lib import strip, SmlReader, PlainReader, Bme280Reader, BaseReader
-from pymeterreader.gateway import *
+from pymeterreader.gateway import BaseGateway, VolkszaehlerGateway, DebugGateway
 
 PARSER = argparse.ArgumentParser(description='MeterReader reads out supported devices '
                                              'and forwards the data to a middleware '

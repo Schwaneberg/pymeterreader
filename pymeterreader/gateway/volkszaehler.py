@@ -1,12 +1,14 @@
 """
 Uploader for the Volkszaehler middleware
 """
-import typing as tp
 import json
-from time import time
+import typing as tp
 from contextlib import suppress
 from logging import error, debug, info
+from time import time
+
 import requests
+
 from pymeterreader.core.channel_upload_info import ChannelUploadInfo
 from pymeterreader.gateway.basegateway import BaseGateway
 

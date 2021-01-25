@@ -8,12 +8,14 @@ import typing as tp
 from os.path import exists
 from pathlib import Path
 from subprocess import run
+
 from cursesmenu import CursesMenu
 from cursesmenu.items import FunctionItem, SubmenuItem
+
 from pymeterreader.device_lib.common import Device, ChannelValue
 from pymeterreader.gateway import VolkszaehlerGateway
-from pymeterreader.wizard.generator import generate_yaml, SERVICE_TEMPLATE
 from pymeterreader.wizard.detector import detect
+from pymeterreader.wizard.generator import generate_yaml, SERVICE_TEMPLATE
 
 
 class Wizard:

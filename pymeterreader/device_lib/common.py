@@ -1,10 +1,10 @@
 """
 Common code for all readers
 """
-from dataclasses import dataclass, field
-from time import time
 import typing as tp
+from dataclasses import dataclass, field
 from string import digits, ascii_letters, punctuation
+from time import time
 
 LEGAL_CHARACTERS = digits + ascii_letters + punctuation
 

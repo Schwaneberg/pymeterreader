@@ -1,5 +1,6 @@
 import unittest
 from unittest import mock
+
 from pymeterreader.device_lib.common import ChannelValue
 from pymeterreader.device_lib.sensor_bme280 import Bme280Reader
 

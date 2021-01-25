@@ -1,6 +1,7 @@
 import typing as tp
 from threading import Thread, Event
 from time import sleep
+
 from pymeterreader.core.meter_reader_node import MeterReaderNode
 
 

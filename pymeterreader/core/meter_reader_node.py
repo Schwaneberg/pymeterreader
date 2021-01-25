@@ -1,6 +1,7 @@
 import logging
-from time import time
 import typing as tp
+from time import time
+
 from pymeterreader.core.channel_upload_info import ChannelUploadInfo
 from pymeterreader.device_lib import BaseReader, Sample, strip
 from pymeterreader.gateway import BaseGateway

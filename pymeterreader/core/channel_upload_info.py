@@ -1,5 +1,5 @@
-from dataclasses import dataclass
 import typing as tp
+from dataclasses import dataclass
 
 
 @dataclass()

@@ -2,12 +2,14 @@
 SML Reader
 Created 2020.10.12 by Oliver Schwaneberg
 """
-from logging import error
 import typing as tp
+from logging import error
+
 import serial
 from sml import SmlBase, SmlFrame, SmlListEntry
-from pymeterreader.device_lib.serial_reader import SerialReader
+
 from pymeterreader.device_lib.common import Sample, Device, ChannelValue
+from pymeterreader.device_lib.serial_reader import SerialReader
 
 
 class SmlReader(SerialReader):

@@ -5,9 +5,10 @@ https://www.raspberrypi-spy.co.uk/
 Created 2020.10.17 by Oliver Schwaneberg
 """
 import time
-from logging import debug, error, warning
 import typing as tp
+from logging import debug, error, warning
 from threading import Lock
+
 try:
     import smbus
 except ImportError:

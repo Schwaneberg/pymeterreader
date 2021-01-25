@@ -3,6 +3,7 @@ Uploader that prints to the Console instead of uploading
 """
 import typing as tp
 from logging import debug
+
 from pymeterreader.core.channel_upload_info import ChannelUploadInfo
 from pymeterreader.gateway.basegateway import BaseGateway
 

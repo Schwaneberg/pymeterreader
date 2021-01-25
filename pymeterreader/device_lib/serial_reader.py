@@ -5,10 +5,12 @@ import typing as tp
 from abc import abstractmethod
 from logging import warning, info, error
 from threading import Lock
+
 import serial
 import serial.tools.list_ports
-from pymeterreader.device_lib.common import Device
+
 from pymeterreader.device_lib.base import BaseReader
+from pymeterreader.device_lib.common import Device
 
 
 class SerialReader(BaseReader):

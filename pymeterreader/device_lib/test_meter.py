@@ -3,6 +3,7 @@ from abc import abstractmethod
 from dataclasses import dataclass
 from threading import Thread
 from time import sleep
+
 import serial
 
 from pymeterreader.device_lib.common import ChannelValue

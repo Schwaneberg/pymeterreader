@@ -1,8 +1,9 @@
 import unittest
 from unittest import mock
-from pymeterreader.meter_reader import map_configuration
-from pymeterreader.gateway import VolkszaehlerGateway
+
 from pymeterreader.device_lib.common import Sample, ChannelValue
+from pymeterreader.gateway import VolkszaehlerGateway
+from pymeterreader.meter_reader import map_configuration
 
 EXAMPLE_CONF = {'devices': {
     'electric meter': {'channels': {'1.8.0': {'uuid': 'c07ef180-e4c6-11e9-95a6-434024b862ef', 'interval': '5m'}},

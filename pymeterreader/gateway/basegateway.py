@@ -4,6 +4,7 @@ Base Gateway
 import typing as tp
 from abc import ABC, abstractmethod
 from logging import warning
+
 from pymeterreader.core.channel_upload_info import ChannelUploadInfo
 
 

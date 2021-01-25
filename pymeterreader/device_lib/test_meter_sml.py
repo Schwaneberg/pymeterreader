@@ -1,7 +1,9 @@
 import unittest
 from unittest import mock
+
 from serial import serial_for_url
 from serial.tools.list_ports_common import ListPortInfo
+
 from pymeterreader.device_lib import SmlReader
 from pymeterreader.device_lib.common import ChannelValue, Device
 from pymeterreader.device_lib.test_meter import StaticMeterSimulator, SerialTestData
