@@ -47,14 +47,12 @@ class VolkszaehlerGateway(BaseGateway):
         try:
             data = {"ts": timestamp, "value": value}
             response = requests.post(rest_url, data=data)
-            if response.status_code != 200:
-                error(f'POST {data} to {rest_url}: {response}')
-            else:
-                info(f'POST {data} to {rest_url}: {response}')
-        except OSError as err:
-            error(err)
-            return False
-        return True
+            response.raise_for_status()
+            info(f'POST {data} to {rest_url}: {response}')
+            return True
+        except requests.exceptions.RequestException as req_err:
+            error(f'POST {data} to {rest_url}: {req_err}')
+        return False
 
     def get(self, uuid: str) -> tp.Optional[tp.Tuple[int, tp.Union[int, float]]]:
         rest_url = self.urljoin(self.url, self.DATA_PATH, uuid, self.SUFFIX)
