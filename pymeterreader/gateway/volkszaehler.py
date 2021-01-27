@@ -2,9 +2,9 @@
 Uploader for the Volkszaehler middleware
 """
 import json
+import logging
 import typing as tp
 from contextlib import suppress
-from logging import error, debug, info
 from time import time
 
 import requests
@@ -12,6 +12,8 @@ import requests
 from pymeterreader.core.channel_description import ChannelDescription
 from pymeterreader.core.channel_upload_info import ChannelUploadInfo
 from pymeterreader.gateway.basegateway import BaseGateway
+
+logger = logging.getLogger(__name__)
 
 
 class VolkszaehlerGateway(BaseGateway):
@@ -51,10 +53,10 @@ class VolkszaehlerGateway(BaseGateway):
             data = {"ts": timestamp, "value": value}
             response = requests.post(rest_url, data=data)
             response.raise_for_status()
-            info(f'POST {data} to {rest_url}: {response}')
+            logger.info(f'POST {data} to {rest_url}: {response}')
             return True
         except requests.exceptions.RequestException as req_err:
-            error(f'POST {data} to {rest_url}: {req_err}')
+            logger.error(f'POST {data} to {rest_url}: {req_err}')
         return False
 
     def get_upload_info(self, channel_info: ChannelUploadInfo) -> tp.Optional[ChannelUploadInfo]:
@@ -72,17 +74,17 @@ class VolkszaehlerGateway(BaseGateway):
                     timestamp = int(latest_entry[0]) // 1000
                     value = latest_entry[1]
                     if not isinstance(value, (int, float)):
-                        error(f"{value} is not of type int or float!")
+                        logger.error(f"{value} is not of type int or float!")
                         return None
-                    info(f"GET {channel_info.uuid} returned timestamp={timestamp * 1000} value={value}")
+                    logger.info(f"GET {channel_info.uuid} returned timestamp={timestamp * 1000} value={value}")
                     return ChannelUploadInfo(channel_info.uuid, channel_info.interval, channel_info.factor, timestamp,
                                              value)
         except requests.exceptions.HTTPError as http_err:
-            error(f'Invalid HTTP Response for GET from {rest_url}: {http_err}')
+            logger.error(f'Invalid HTTP Response for GET from {rest_url}: {http_err}')
         except requests.exceptions.ConnectionError as conn_err:
-            error(f'Could not connect for GET from {rest_url}: {conn_err}')
+            logger.error(f'Could not connect for GET from {rest_url}: {conn_err}')
         except requests.exceptions.RequestException as req_err:
-            error(f'Unexpected requests error: {req_err}')
+            logger.error(f'Unexpected requests error: {req_err}')
         return None
 
     def get_channels(self) -> tp.List[ChannelDescription]:
@@ -95,7 +97,7 @@ class VolkszaehlerGateway(BaseGateway):
             response = requests.get(channel_url)
             response.raise_for_status()
             channels_list: tp.List[dict] = json.loads(response.content)['channels']
-            debug(f'GET from {channel_url}: {response}')
+            logger.debug(f'GET from {channel_url}: {response}')
             # Transform untyped response into ChannelDescriptions
             for channel_dict in channels_list:
                 # Mandatory arguments
@@ -108,16 +110,16 @@ class VolkszaehlerGateway(BaseGateway):
                     extracted_channels.append(
                         ChannelDescription(channel_uuid, channel_title, channel_type, channel_description))
                 else:
-                    error(f"Could not parse Channel with uuid:{channel_uuid},"
-                          f"title:{channel_title},"
-                          f"type:{channel_type},"
-                          f"description:{channel_description}")
+                    logger.error(f"Could not parse Channel with uuid:{channel_uuid},"
+                                 f"title:{channel_title},"
+                                 f"type:{channel_type},"
+                                 f"description:{channel_description}")
         except requests.exceptions.HTTPError as http_err:
-            error(f'Invalid HTTP Response for GET from {channel_url}: {http_err}')
+            logger.error(f'Invalid HTTP Response for GET from {channel_url}: {http_err}')
         except requests.exceptions.ConnectionError as conn_err:
-            error(f'Could not connect for GET: {conn_err}')
+            logger.error(f'Could not connect for GET: {conn_err}')
         except requests.exceptions.RequestException as req_err:
-            error(f'Unexpected requests error: {req_err}')
+            logger.error(f'Unexpected requests error: {req_err}')
         return extracted_channels
 
     @staticmethod

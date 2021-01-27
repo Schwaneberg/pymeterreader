@@ -1,12 +1,14 @@
 """
 Base Gateway
 """
+import logging
 import typing as tp
 from abc import ABC, abstractmethod
-from logging import warning
 
 from pymeterreader.core.channel_description import ChannelDescription
 from pymeterreader.core.channel_upload_info import ChannelUploadInfo
+
+logger = logging.getLogger(__name__)
 
 
 class BaseGateway(ABC):
@@ -16,8 +18,8 @@ class BaseGateway(ABC):
 
     def __init__(self, **kwargs) -> None:
         if kwargs:
-            warning(f'Unknown parameter{"s" if len(kwargs) > 1 else ""}:'
-                    f' {", ".join(kwargs.keys())}')
+            logger.warning(f'Unknown parameter{"s" if len(kwargs) > 1 else ""}:'
+                           f' {", ".join(kwargs.keys())}')
 
     @abstractmethod
     def post(self, channel: ChannelUploadInfo, value: tp.Union[int, float], sample_timestamp: tp.Union[int, float],

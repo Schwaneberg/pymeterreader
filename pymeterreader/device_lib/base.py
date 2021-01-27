@@ -2,11 +2,13 @@
 Base Reader (ABC)
 Created 2020.10.12 by Oliver Schwaneberg
 """
+import logging
 import typing as tp
 from abc import ABC, abstractmethod
-from logging import warning
 
 from pymeterreader.device_lib.common import Sample, Device, strip
+
+logger = logging.getLogger(__name__)
 
 
 class BaseReader(ABC):
@@ -26,8 +28,8 @@ class BaseReader(ABC):
         if meter_id is not None:
             self.meter_id = str(meter_id)
         if kwargs:
-            warning(f'Unknown parameter{"s" if len(kwargs) > 1 else ""}:'
-                    f' {", ".join(kwargs.keys())}')
+            logger.warning(f'Unknown parameter{"s" if len(kwargs) > 1 else ""}:'
+                           f' {", ".join(kwargs.keys())}')
 
     @staticmethod
     @abstractmethod
@@ -52,5 +54,6 @@ class BaseReader(ABC):
         """
         if self.meter_id is None or strip(self.meter_id) in strip(sample.meter_id):
             return True
-        warning(f"Meter ID in {self.PROTOCOL} sample {sample.meter_id} does not match expected ID {self.meter_id}")
+        logger.warning(
+            f"Meter ID in {self.PROTOCOL} sample {sample.meter_id} does not match expected ID {self.meter_id}")
         return False

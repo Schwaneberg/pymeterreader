@@ -2,14 +2,16 @@
 SML Reader
 Created 2020.10.12 by Oliver Schwaneberg
 """
+import logging
 import typing as tp
-from logging import error
 
 import serial
 from sml import SmlBase, SmlFrame, SmlListEntry
 
 from pymeterreader.device_lib.common import Sample, Device, ChannelValue
 from pymeterreader.device_lib.serial_reader import SerialReader
+
+logger = logging.getLogger(__name__)
 
 
 class SmlReader(SerialReader):
@@ -72,12 +74,12 @@ class SmlReader(SerialReader):
                 sample = self.__parse(frame)
                 if sample is not None:
                     return sample
-                error("Parsing the SML frame did not yield a Sample!")
-            error("Could not parse the binary SML data")
+                logger.error("Parsing the SML frame did not yield a Sample!")
+            logger.error("Could not parse the binary SML data")
         except AssertionError as err:
-            error(f"SML parsing failed: {err}")
+            logger.error(f"SML parsing failed: {err}")
         except serial.SerialException as err:
-            error(f"Serial Interface error: {err}")
+            logger.error(f"Serial Interface error: {err}")
         return None
 
     @staticmethod

@@ -2,14 +2,16 @@
 Plain Reader
 Created 2020.10.12 by Oliver Schwaneberg
 """
+import logging
 import re
 import typing as tp
-from logging import debug, error
 
 import serial
 
 from pymeterreader.device_lib.common import Sample, Device, ChannelValue
 from pymeterreader.device_lib.serial_reader import SerialReader
+
+logger = logging.getLogger(__name__)
 
 
 class PlainReader(SerialReader):
@@ -81,15 +83,15 @@ class PlainReader(SerialReader):
             # Decode response
             init: str = init_bytes.decode("utf-8")
             response: str = response_bytes.decode("utf-8")
-            debug(f"Plain response: ({init}){response}")
+            logger.debug(f"Plain response: ({init}){response}")
             sample = self.__parse(response)
             if sample is not None:
                 return sample
-            error("Parsing the response did not yield a Sample!")
+            logger.error("Parsing the response did not yield a Sample!")
         except UnicodeError as err:
-            error(f"Decoding the Bytes as Unicode failed: {err}\n{response_bytes}")
+            logger.error(f"Decoding the Bytes as Unicode failed: {err}\n{response_bytes}")
         except serial.SerialException as err:
-            error(f"Serial Interface error: {err}")
+            logger.error(f"Serial Interface error: {err}")
         return None
 
     @staticmethod

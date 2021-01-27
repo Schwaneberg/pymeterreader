@@ -1,9 +1,9 @@
 """
 Serial Reader (BaseReader)
 """
+import logging
 import typing as tp
 from abc import abstractmethod
-from logging import warning, info, error
 from threading import Lock
 
 import serial
@@ -11,6 +11,8 @@ import serial.tools.list_ports
 
 from pymeterreader.device_lib.base import BaseReader
 from pymeterreader.device_lib.common import Device
+
+logger = logging.getLogger(__name__)
 
 
 class SerialReader(BaseReader):
@@ -52,7 +54,7 @@ class SerialReader(BaseReader):
         """
         if self._serial_instance is None:
             if self.serial_url.startswith("hwgrep://"):
-                warning("Relying on hwgrep for Serial port identification is not recommended!")
+                logger.warning("Relying on hwgrep for Serial port identification is not recommended!")
             self._serial_instance = serial.serial_for_url(self.serial_url,
                                                           baudrate=self.baudrate,
                                                           bytesize=self.bytesize,
@@ -82,10 +84,10 @@ class SerialReader(BaseReader):
                 if device is not None:
                     devices.append(device)
                 else:
-                    info(f"No {serial_reader_implementation.PROTOCOL} Meter found at {discovered_tty_url}")
+                    logger.info(f"No {serial_reader_implementation.PROTOCOL} Meter found at {discovered_tty_url}")
             except Exception:
-                error(f"Uncaught Exception while tyring to detect {serial_reader_implementation.PROTOCOL} Meter!"
-                      " Please report this to the developers.")
+                logger.error(f"Uncaught Exception while tyring to detect {serial_reader_implementation.PROTOCOL} Meter!"
+                             " Please report this to the developers.")
                 raise
         return devices
 

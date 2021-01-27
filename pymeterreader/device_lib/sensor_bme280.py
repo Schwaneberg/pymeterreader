@@ -4,9 +4,9 @@ Based on Matt Hawkins's implementation on
 https://www.raspberrypi-spy.co.uk/
 Created 2020.10.17 by Oliver Schwaneberg
 """
+import logging
 import time
 import typing as tp
-from logging import debug, error, warning
 from threading import Lock
 
 try:
@@ -16,6 +16,8 @@ except ImportError:
 from construct import Struct, BytesInteger, BitStruct, BitsInteger
 from pymeterreader.device_lib.base import BaseReader
 from pymeterreader.device_lib.common import Sample, Device, ChannelValue
+
+logger = logging.getLogger(__name__)
 
 AUX_STRUCT = BitStruct('H4' / BitsInteger(12, True), 'H5' / BitsInteger(12, True))
 COMP_PARAM_STRUCT = Struct('T1' / BytesInteger(2, False, True),
@@ -59,12 +61,13 @@ class Bme280Reader(BaseReader):
         try:
             smbus
         except NameError:
-            error(
+            logger.error(
                 "Could not import smbus library! This library is missing and Bme280Reader can not function without it!")
             raise
         super().__init__(**kwargs)
         if kwargs:
-            warning(f"Bme280Reader: Unknown parameter{'s' if len(kwargs) > 1 else ''}: {', '.join(kwargs.keys())}")
+            logger.warning(
+                f"Bme280Reader: Unknown parameter{'s' if len(kwargs) > 1 else ''}: {', '.join(kwargs.keys())}")
         if isinstance(meter_address, str):
             if meter_address.lower().startswith('0x'):
                 self.i2c_address = int(meter_address.lower(), 16)
@@ -72,13 +75,13 @@ class Bme280Reader(BaseReader):
                 self.i2c_address = int(meter_address)
             else:
                 self.i2c_address = 0x76
-                error(f'Bme280Reader: Cannot convert id {meter_address} to int.')
+                logger.error(f'Bme280Reader: Cannot convert id {meter_address} to int.')
         if 127 < self.i2c_address < 256:
-            warning("Bme280Reader: 8 bit address defined!")
+            logger.warning("Bme280Reader: 8 bit address defined!")
         elif 255 < self.i2c_address < 1024:
-            warning("Bme280Reader: 10 bit address defined!")
+            logger.warning("Bme280Reader: 10 bit address defined!")
         elif self.i2c_address >= 1024:
-            error("Bme380Reader: Illegal I2C address defined. Default to 0x76.")
+            logger.error("Bme380Reader: Illegal I2C address defined. Default to 0x76.")
             self.i2c_address = 0x76
 
     def poll(self) -> tp.Optional[Sample]:
@@ -170,9 +173,9 @@ class Bme280Reader(BaseReader):
                 return sample
             except OSError as err:
                 if isinstance(err, PermissionError):
-                    error("Bme280Reader: Insufficient permissions to access I2C bus.")
+                    logger.error("Bme280Reader: Insufficient permissions to access I2C bus.")
                 else:
-                    error(f"Bme280Reader: Cannot detect BME280 at add {self.i2c_address:02x}")
+                    logger.error(f"Bme280Reader: Cannot detect BME280 at add {self.i2c_address:02x}")
         return None
 
     def read_chip_info(self) -> tp.Optional[tp.Tuple[int, int]]:
@@ -184,14 +187,14 @@ class Bme280Reader(BaseReader):
         try:
             bus = smbus.SMBus(1)
             chip_id, chip_version = bus.read_i2c_block_data(self.i2c_address, reg_id, 2)
-            debug(f"BME280 detected with chip id {chip_id} and version {chip_version}.")
+            logger.debug(f"BME280 detected with chip id {chip_id} and version {chip_version}.")
             bus.close()
             return chip_id, chip_version
         except OSError as err:
             if isinstance(err, PermissionError):
-                error("Bme280Reader: Insufficient permissions to access I2C bus.")
+                logger.error("Bme280Reader: Insufficient permissions to access I2C bus.")
             else:
-                error(f"Bme280Reader: Cannot detect BME280 at add {self.i2c_address:02x}")
+                logger.error(f"Bme280Reader: Cannot detect BME280 at add {self.i2c_address:02x}")
         return None
 
     @staticmethod
