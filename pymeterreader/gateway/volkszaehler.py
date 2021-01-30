@@ -5,6 +5,7 @@ import json
 import logging
 import typing as tp
 from contextlib import suppress
+from datetime import timedelta, datetime, timezone
 from time import time
 
 import requests
@@ -33,24 +34,25 @@ class VolkszaehlerGateway(BaseGateway):
         self.url = middleware_url
         self.interpolate = interpolate
 
-    def post(self, channel: ChannelUploadInfo, value: tp.Union[int, float], sample_timestamp: tp.Union[int, float],
-             poll_timestamp: tp.Union[int, float]) -> bool:
+    def post(self, channel: ChannelUploadInfo, value: tp.Union[int, float], sample_timestamp: datetime,
+             poll_timestamp: datetime) -> bool:
         # Push hourly interpolated values to enable line plotting in volkszaehler middleware
         if self.interpolate:
-            hours = round((poll_timestamp - channel.last_upload) / 3600)
+            time_between_uploads: timedelta = poll_timestamp - channel.last_upload
+            hours = time_between_uploads.seconds // 3600
             diff = value - channel.last_value
             if hours <= 24:
                 for hour in range(1, hours):
-                    btw_time = channel.last_upload + hour * 3600
+                    btw_time = channel.last_upload + timedelta(0, hour * 3600)
                     btw_value = channel.last_value + diff * (hour / hours)
                     self.__post_value(channel.uuid, btw_value, btw_time)
         return self.__post_value(channel.uuid, value, sample_timestamp)
 
-    def __post_value(self, uuid: str, value: tp.Union[int, float], timestamp: tp.Union[int, float]) -> bool:
+    def __post_value(self, uuid: str, value: tp.Union[int, float], timestamp: datetime) -> bool:
         rest_url = self.urljoin(self.url, self.DATA_PATH, uuid, self.SUFFIX)
-        timestamp = self.timestamp_to_int(timestamp)
         try:
-            data = {"ts": timestamp, "value": value}
+            timestamp_utc_milliseconds = int(timestamp.timestamp() * 1000)
+            data = {"ts": timestamp_utc_milliseconds, "value": value}
             response = requests.post(rest_url, data=data)
             response.raise_for_status()
             logger.info(f'POST {data} to {rest_url}: {response}')
@@ -71,12 +73,12 @@ class VolkszaehlerGateway(BaseGateway):
                     tuples = parsed.get('data').get('tuples')
                     tuples.sort(key=lambda x: x[0])
                     latest_entry = tuples[-1]
-                    timestamp = int(latest_entry[0]) // 1000
+                    timestamp = datetime.fromtimestamp((latest_entry[0] / 1000), timezone.utc)
                     value = latest_entry[1]
                     if not isinstance(value, (int, float)):
                         logger.error(f"{value} is not of type int or float!")
                         return None
-                    logger.info(f"GET {channel_info.uuid} returned timestamp={timestamp * 1000} value={value}")
+                    logger.info(f"GET {channel_info.uuid} returned timestamp={timestamp} value={value}")
                     return ChannelUploadInfo(channel_info.uuid, channel_info.interval, channel_info.factor, timestamp,
                                              value)
         except requests.exceptions.HTTPError as http_err:

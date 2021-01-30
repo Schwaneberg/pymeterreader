@@ -4,6 +4,7 @@ Base Gateway
 import logging
 import typing as tp
 from abc import ABC, abstractmethod
+from datetime import datetime
 
 from pymeterreader.core.channel_description import ChannelDescription
 from pymeterreader.core.channel_upload_info import ChannelUploadInfo
@@ -22,8 +23,8 @@ class BaseGateway(ABC):
                            f' {", ".join(kwargs.keys())}')
 
     @abstractmethod
-    def post(self, channel: ChannelUploadInfo, value: tp.Union[int, float], sample_timestamp: tp.Union[int, float],
-             poll_timestamp: tp.Union[int, float]) -> bool:
+    def post(self, channel: ChannelUploadInfo, value: tp.Union[int, float], sample_timestamp: datetime,
+             poll_timestamp: datetime) -> bool:
         raise NotImplementedError("Abstract Base for POST")
 
     @abstractmethod
@@ -33,9 +34,3 @@ class BaseGateway(ABC):
     @abstractmethod
     def get_channels(self) -> tp.List[ChannelDescription]:
         raise NotImplementedError("Abstract Base for get_channels")
-
-    @staticmethod
-    def timestamp_to_int(timestamp: tp.Union[int, float]) -> int:
-        if isinstance(timestamp, float):
-            timestamp = int(timestamp * 1000)
-        return timestamp

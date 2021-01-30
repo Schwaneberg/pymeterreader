@@ -3,8 +3,8 @@ Common code for all readers
 """
 import typing as tp
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from string import digits, ascii_letters, punctuation
-from time import time
 
 LEGAL_CHARACTERS = digits + ascii_letters + punctuation
 
@@ -24,7 +24,7 @@ class Sample:
     """
     Data storage object to represent a readout
     """
-    time: float = field(default_factory=time)
+    time: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     meter_id: str = ""
     channels: tp.List[ChannelValue] = field(default_factory=list)
 

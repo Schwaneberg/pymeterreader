@@ -1,6 +1,6 @@
 import logging
 import typing as tp
-from time import time
+from datetime import datetime, timedelta, timezone
 
 from pymeterreader.core.channel_upload_info import ChannelUploadInfo
 from pymeterreader.device_lib import BaseReader, Sample, strip
@@ -70,7 +70,7 @@ class MeterReaderNode:
         :returns True if successful
         """
         # pylint: disable=too-many-arguments, too-many-nested-blocks
-        now = time()
+        now = datetime.now(timezone.utc)
         posted = 0
         if sample is None:
             sample = self.__reader.poll()
@@ -82,7 +82,9 @@ class MeterReaderNode:
                         cur_channel = strip(channel.channel_name)
                         if cur_channel in self.__channels:
                             cur_value = self.__cast_value(channel.value, self.__channels[cur_channel].factor)
-                            if self.__channels[cur_channel].last_upload + self.__channels[cur_channel].interval <= now:
+                            next_scheduled_upload = self.__channels[cur_channel].last_upload \
+                                                    + timedelta(0, self.__channels[cur_channel].interval)
+                            if next_scheduled_upload <= now:
                                 if self.__gateway.post(self.__channels[cur_channel],
                                                        cur_value,
                                                        sample.time,

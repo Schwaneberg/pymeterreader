@@ -6,6 +6,7 @@ import argparse
 import logging
 import signal
 import typing as tp
+from datetime import datetime, timezone
 
 import humanfriendly
 from yaml import load, FullLoader
@@ -75,12 +76,10 @@ def map_configuration(config: dict) -> tp.List[MeterReaderNode]:  # noqa MC0001
                                     uuid = configuration_channel.get('uuid')
                                     factor = configuration_channel.get('factor', 1)
                                     if strip(str(configuration_channel_name)) in strip(sample_channel.channel_name):
+                                        zero_datetime = datetime.fromtimestamp(0, timezone.utc)
+                                        upload_info = ChannelUploadInfo(uuid, interval, factor, zero_datetime, - 1)
                                         # Replacing config string with exact match
-                                        available_channels[sample_channel.channel_name] = ChannelUploadInfo(uuid,
-                                                                                                            interval,
-                                                                                                            factor,
-                                                                                                            -1,
-                                                                                                            -1)
+                                        available_channels[sample_channel.channel_name] = upload_info
                             if available_channels:
                                 meter_reader_node = MeterReaderNode(available_channels,
                                                                     reader,

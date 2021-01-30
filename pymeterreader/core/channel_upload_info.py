@@ -1,5 +1,6 @@
 import typing as tp
 from dataclasses import dataclass
+from datetime import datetime
 
 
 @dataclass()
@@ -15,5 +16,5 @@ class ChannelUploadInfo:
     uuid: str
     interval: tp.Union[int, float]
     factor: float
-    last_upload: tp.Union[int, float]
+    last_upload: datetime
     last_value: tp.Union[int, float]
