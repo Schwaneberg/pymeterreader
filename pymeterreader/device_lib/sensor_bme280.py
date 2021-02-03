@@ -169,12 +169,13 @@ class Bme280Reader(BaseReader):
                 sample.channels.append({'objName': 'HUMIDITY',
                                         'value': humidity,
                                         'unit': '%'})
+                return sample
             except OSError as err:
                 if isinstance(err, PermissionError):
                     error("Bme280Reader: Insufficient permissions to access I2C bus.")
                 else:
                     error(f"Bme280Reader: Cannot detect BME280 at add {self.meter_id:02x}")
-        return sample
+        return None
 
     def read_chip_info(self) -> tp.Optional[tp.Tuple[int, int]]:
         """

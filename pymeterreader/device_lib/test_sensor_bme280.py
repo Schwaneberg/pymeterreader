@@ -22,7 +22,8 @@ class mock_bus:
         self.written.append((addr, reg, val))
 
     def read_i2c_block_data(self, addr, reg, length):
-        assert addr == 0x76
+        if addr != 0x76:
+            raise OSError(f"Can not access SMBus@{addr}")
         assert not self.closed
         if reg == 0x88 and length == 24:
             return self.cal1
@@ -50,6 +51,13 @@ class TestBme280(unittest.TestCase):
         reader = Bme280Reader("0x76")
         sample = reader.poll()
         self.assertEqual(ref_channels, sample.channels)
+
+    @mock.patch('pymeterreader.device_lib.sensor_bme280.smbus', autospec=True)
+    def test_read_wrong_address(self, mock_smbus):
+        mock_smbus.SMBus.return_value = mock_bus()
+        reader = Bme280Reader("0x77")
+        sample = reader.poll()
+        self.assertIsNone(sample)
 
 
 if __name__ == '__main__':
