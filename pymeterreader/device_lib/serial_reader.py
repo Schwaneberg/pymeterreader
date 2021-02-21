@@ -97,3 +97,14 @@ class SerialReader(BaseReader):
         Returns a Device if the class extending SerialReader can discover a meter with the configured settings
         """
         raise NotImplementedError("This is just an abstract class.")
+
+    def reader_info_metric_dict(self) -> tp.Dict[str, str]:
+        info_dict = {
+            "meter_address": self.serial_url,
+            "baudrate": str(self.baudrate),
+            "bytesize": str(self.bytesize),
+            "stopbits": str(self.stopbits),
+            "timeout": str(self.timeout),
+            "parity": str(self.parity),
+        }
+        return {**info_dict, **super().reader_info_metric_dict()}

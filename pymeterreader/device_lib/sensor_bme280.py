@@ -12,6 +12,10 @@ from threading import Lock
 
 from construct import Struct, BitStruct, Int16un as uShort, Int16sn as sShort, Int8un as uChar, Int8sn as sChar, \
     BitsInteger, Padding, Bit, ConstructError
+from prometheus_client import Metric
+from prometheus_client.metrics_core import GaugeMetricFamily
+
+from pymeterreader.metrics.prefix import METRICS_PREFIX
 
 try:
     from smbus2 import SMBus
@@ -520,6 +524,57 @@ class Bme280Reader(BaseReader):
         if chip_id in [0x56, 0x57]:
             return "BMP280(Sample)"
         return None
+
+    def reader_info_metric_dict(self) -> tp.Dict[str, str]:
+        info_dict = {
+            "meter_address": hex(self.i2c_address),
+            "mode": self.mode.name,
+            "i2c_bus": str(self.i2c_bus),
+            "standby_time": str(self.standby_time),
+            "irr_filter_coefficient": str(self.irr_filter_coefficient),
+            "temperature_oversampling": str(self.temperature_oversampling),
+            "humidity_oversampling": str(self.humidity_oversampling),
+            "pressure_oversampling": str(self.pressure_oversampling),
+            "cache_calibration": str(self.cache_calibration),
+        }
+        return {**info_dict, **super().reader_info_metric_dict()}
+
+    def sample_info_metric_dict(self, sample: Sample) -> tp.Dict[str, str]:
+        sensor_type, calibration_hash = sample.meter_id.split("-")
+        return {
+            "sensor_type": sensor_type,
+            "calibration_hash": calibration_hash,
+            **super().sample_info_metric_dict(sample),
+        }
+
+    def channel_metric(self, channel: ChannelValue, meter_id: str, meter_name: str, epochtime: float) -> tp.Iterator[
+        Metric]:
+        if channel.unit is not None:
+            if "°C" in channel.unit and "TEMPERATURE" in channel.channel_name:
+                temperature = GaugeMetricFamily(
+                    METRICS_PREFIX + "temperature_celsius",
+                    "Temperature in degrees celsius",
+                    labels=["meter_id", "meter_name"],
+                )
+                temperature.add_metric([meter_id, meter_name], channel.value, timestamp=epochtime)
+                yield temperature
+            elif "Pa" in channel.unit and "PRESSURE" in channel.channel_name:
+                pressure = GaugeMetricFamily(
+                    METRICS_PREFIX + "air_pressure_pascal",
+                    "Air pressure in pascal",
+                    labels=["meter_id", "meter_name"]
+                )
+                pressure.add_metric([meter_id, meter_name], channel.value, timestamp=epochtime)
+                yield pressure
+            elif "%" in channel.unit and "HUMIDITY" in channel.channel_name:
+                pressure = GaugeMetricFamily(
+                    METRICS_PREFIX + "relative_humidity_percent",
+                    "Relative humidity in percent",
+                    labels=["meter_id", "meter_name"],
+                )
+                pressure.add_metric([meter_id, meter_name], channel.value, timestamp=epochtime)
+                yield pressure
+            yield from ()
 
     @staticmethod
     def detect(**kwargs) -> tp.List[Device]:

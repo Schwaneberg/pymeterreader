@@ -34,3 +34,7 @@ middleware:
   type: volkszaehler
   middleware_url: http://localhost/middleware.php  # optional, defaults to local host
   interpolate: True  # Interpolate hourly values, if interval >=2h
+
+metrics:
+  http_port: 8080 # This is the default Port
+  listen_address: 127.0.0.1 # Deploy a reverse proxy and listen on localhost if you need authentication or https support

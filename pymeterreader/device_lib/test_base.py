@@ -3,6 +3,8 @@ import typing as tp
 import unittest
 from threading import Lock
 
+from prometheus_client import Metric
+
 from pymeterreader.device_lib import BaseReader, Sample
 from pymeterreader.device_lib.common import ChannelValue, Device
 
@@ -37,6 +39,10 @@ class CountingReader(BaseReader):
             return [
                 Device(sample.meter_id, reader.implementation_meter_address, CountingReader.PROTOCOL, sample.channels)]
         return []
+
+    def channel_metric(self, channel: ChannelValue, meter_id: str, meter_name: str, epochtime: float) -> tp.Iterator[
+        Metric]:
+        yield from ()
 
 
 class TestBaseReader(unittest.TestCase):

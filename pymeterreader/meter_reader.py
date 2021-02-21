@@ -15,6 +15,7 @@ from pymeterreader.core import MeterReaderTask, MeterReaderNode, ChannelUploadIn
 from pymeterreader.device_lib import strip, SmlReader, PlainReader, Bme280Reader, BaseReader
 from pymeterreader.device_lib.common import humanfriendly_time_parser, ConfigurationError
 from pymeterreader.gateway import BaseGateway, VolkszaehlerGateway, DebugGateway
+from pymeterreader.metrics.metrics_collector import MetricsJiTCollector
 
 PARSER = argparse.ArgumentParser(description='MeterReader reads out supported devices '
                                              'and forwards the data to a middleware '
@@ -34,6 +35,11 @@ def map_configuration(config: dict) -> tp.List[MeterReaderNode]:  # noqa MC0001
     meter_reader_nodes = []
     if 'devices' in config and 'middleware' in config:
         try:
+            # Configure Prometheus integration
+            metrics_config = config.get("metrics", None)
+            if metrics_config is not None:
+                metrics_collector = MetricsJiTCollector(**metrics_config)
+            # Configure Middleware uploads
             middleware_type = config.get('middleware').pop('type')
             middleware_configuration: dict = config.get('middleware')
             if middleware_type == 'volkszaehler':
@@ -57,6 +63,9 @@ def map_configuration(config: dict) -> tp.List[MeterReaderNode]:  # noqa MC0001
                         logging.error(f'Unsupported protocol {protocol}')
                         reader = None
                     if reader is not None:
+                        # Register Reader to be polled by Prometheus
+                        if metrics_config is not None:
+                            metrics_collector.register_reader(reader)
                         sample = reader.poll()
                         if sample is not None:
                             available_channels = {}
@@ -64,13 +73,14 @@ def map_configuration(config: dict) -> tp.List[MeterReaderNode]:  # noqa MC0001
                                 for configuration_channel_name, configuration_channel in configuration_channels.items():
                                     interval = humanfriendly_time_parser(configuration_channel.get('interval', '1h'))
                                     uuid = configuration_channel.get('uuid')
-                                    factor = configuration_channel.get('factor', 1)
+                                    factor = configuration_channel.get('factor', 1.0)
                                     if strip(str(configuration_channel_name)) in strip(sample_channel.channel_name):
                                         zero_datetime = datetime.fromtimestamp(0, timezone.utc)
                                         upload_info = ChannelUploadInfo(uuid, interval, factor, zero_datetime, - 1)
                                         # Replacing config string with exact match
                                         available_channels[sample_channel.channel_name] = upload_info
-                            if available_channels:
+                            # Do not require configuring channels if Prometheus Server is active
+                            if len(available_channels) > 0 or metrics_config is not None:
                                 meter_reader_node = MeterReaderNode(available_channels,
                                                                     reader,
                                                                     gateway)

@@ -3,13 +3,17 @@ SML Reader
 Created 2020.10.12 by Oliver Schwaneberg
 """
 import logging
+import re
 import typing as tp
 
 import serial
+from prometheus_client import Metric
+from prometheus_client.metrics_core import CounterMetricFamily, GaugeMetricFamily
 from sml import SmlBase, SmlFrame, SmlListEntry, SmlParserError
 
 from pymeterreader.device_lib.common import Sample, Device, ChannelValue
 from pymeterreader.device_lib.serial_reader import SerialReader
+from pymeterreader.metrics.prefix import METRICS_PREFIX
 
 logger = logging.getLogger(__name__)
 
@@ -112,3 +116,52 @@ class SmlReader(SerialReader):
                         else:
                             sample.channels.append(ChannelValue(obis_code, value))
         return sample
+
+    def sample_info_metric_dict(self, sample: Sample) -> tp.Dict[str, str]:
+        info_dict = {}
+        for channel in sample.channels:
+            # Extract Manufacturer
+            if channel.channel_name in SmlReader.OBIS_CODES_MANUFACTURER_ID:
+                if isinstance(channel.value, str):
+                    info_dict["manufacturer"] = channel.value
+                elif isinstance(channel.value, bytes):
+                    # Decode bytes
+                    info_dict["manufacturer"] = str(channel.value, 'utf-8')
+        return {**info_dict, **super().sample_info_metric_dict(sample)}
+
+    def channel_metric(self, channel: ChannelValue, meter_id: str, meter_name: str, epochtime: float) -> tp.Iterator[
+        Metric]:
+        # Create metrics based on OBIS codes
+        if channel.unit is not None:
+            if "W" in channel.unit and "1-0:16.7.0*255" in channel.channel_name:
+                power_consumption = GaugeMetricFamily(
+                    METRICS_PREFIX + "power_consumption_watts",
+                    "Momentary power consumption in watts.",
+                    labels=["meter_id", "meter_name"],
+                )
+                power_consumption.add_metric([meter_id, meter_name], channel.value, timestamp=epochtime)
+                yield power_consumption
+            elif "Wh" in channel.unit:
+                match = re.fullmatch(r"1-0:(?P<type_id>1|2)\.8\.(?P<tariff_id>0|1|2)\*255", channel.channel_name)
+                if match is not None:
+                    # Adhere to Prometheus unit convention
+                    # Watt Hours * 3600 Seconds/Hour == Watt Seconds == Joules
+                    joules = channel.value * 3600
+                    if match.groupdict()["type_id"] == "1":
+                        energy_type = "consumption"
+                    else:
+                        energy_type = "export"
+                    if match.groupdict()["tariff_id"] == 1:
+                        tariff_id = "1"
+                    elif match.groupdict()["tariff_id"] == 2:
+                        tariff_id = "2"
+                    else:
+                        tariff_id = "aggregated"
+                    energy = CounterMetricFamily(
+                        METRICS_PREFIX + f"energy_{energy_type}_joules_total",
+                        f"Energy {energy_type} in joules",
+                        labels=["meter_id", "meter_name", "tariff"],
+                    )
+                    energy.add_metric([meter_id, meter_name, tariff_id], joules, timestamp=epochtime)
+                    yield energy
+        yield from ()
