@@ -24,6 +24,7 @@ class SmlReader(SerialReader):
     PROTOCOL = "SML"
     __START_SEQ = b'\x1b\x1b\x1b\x1b\x01\x01\x01\x01'
     __END_SEQ = b'\x1b\x1b\x1b\x1b'
+    OBIS_CODE_METER_ID = "1-0:0.0.9*255"
 
     def __init__(self, meter_address: str, **kwargs) -> None:
         """
@@ -117,7 +118,7 @@ class SmlReader(SerialReader):
                         sample.channels.append(ChannelValue(obis_code, value, sml_entry.get('unit')))
                     else:
                         # Determine the meter_id from OBIS code
-                        if '1-0:0.0.9' in obis_code:
+                        if SmlReader.OBIS_CODE_METER_ID in obis_code:
                             sample.meter_id = value
                         # Add Channels without unit
                         else:
