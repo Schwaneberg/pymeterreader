@@ -17,7 +17,7 @@ SERVICE_TEMPLATE = '[Unit]\n' \
                    'WantedBy=multi-user.target\n'
 
 
-def generate_yaml(devices: dict, url: str):
+def generate_yaml(devices: dict, url: str) -> str:
     config = {'middleware': {'type': 'volkszaehler',
                              'middleware_url': url,
                              'interpolate': False},

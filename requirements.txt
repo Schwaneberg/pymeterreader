@@ -3,6 +3,6 @@ pyserial
 humanfriendly
 requests
 PyYAML
-smbus
+smbus2
 construct
 curses-menu

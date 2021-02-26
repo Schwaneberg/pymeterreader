@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-from os.path import exists
-import subprocess
-import re
-import sys
 import logging
+import re
+import subprocess
+import sys
+from os.path import exists
+
 from setuptools import setup, find_packages
 
 logging.basicConfig(level=logging.INFO)

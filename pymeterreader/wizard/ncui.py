@@ -1,32 +1,42 @@
 """
 Curses setup wizard
 """
+import logging
+import platform
 import re
+import typing as tp
 from os.path import exists
+from pathlib import Path
 from subprocess import run
+
 from cursesmenu import CursesMenu
 from cursesmenu.items import FunctionItem, SubmenuItem
-from pymeterreader.device_lib.common import Device
+
+from pymeterreader.device_lib.common import Device, ChannelValue
 from pymeterreader.gateway import VolkszaehlerGateway
-from pymeterreader.wizard.generator import generate_yaml, SERVICE_TEMPLATE
 from pymeterreader.wizard.detector import detect
+from pymeterreader.wizard.generator import generate_yaml, SERVICE_TEMPLATE
 
 
 class Wizard:
-    def __init__(self):
+    CONFIG_FILE_NAME = "pymeterreader.yaml"
+    POSIX_CONFIG_PATH = Path("/etc") / CONFIG_FILE_NAME
+
+    def __init__(self) -> None:
+        logging.basicConfig(level=logging.INFO)
         self.url = "http://localhost/middleware.php"
         self.gateway = VolkszaehlerGateway(self.url)
         self.gateway_channels = self.gateway.get_channels()
-        self.menu = None
+        self.menu: CursesMenu
         print("Detecting meters...")
         self.meters = detect()
-        self.channel_config = {}
+        self.channel_config: tp.Dict[str, tp.Dict[str, tp.Union[str, tp.Dict]]] = {}
         self.restart_ui = True
         while self.restart_ui:
             self.restart_ui = False
             self.create_menu()
 
-    def input_gw(self, text):
+    def input_gw(self, text) -> None:
         def is_valid_url():
             return re.match(r"^https?://[/\w\d.]+.php$", self.url)
         self.restart_ui = True
@@ -51,7 +61,7 @@ class Wizard:
             self.menu.stdscr.addstr(3, 0, f"Unable to find any public channels at '{self.url}'.")
         self.menu.stdscr.getkey()
 
-    def create_menu(self):
+    def create_menu(self) -> None:
         # Create the menu
         self.menu = CursesMenu("PyMeterReader Configuration Wizard", "Choose item to configure")
 
@@ -59,18 +69,20 @@ class Wizard:
         self.menu.append_item(function_item)
 
         for meter in self.meters:
-            meter_menu = CursesMenu(f"Connect channels for meter {meter.identifier} at {meter.tty}", "By channel")
-            for channel, value in meter.channels.items():
-                map_menu = CursesMenu(f"Choose uuid for {channel}")
+            meter_menu = CursesMenu(f"Connect channels for meter {meter.meter_id} at {meter.meter_address}",
+                                    "By channel")
+            for channel in meter.channels:
+                map_menu = CursesMenu(f"Choose uuid for {channel.channel_name}")
                 for choice in self.gateway_channels:
-                    map_menu.append_item(FunctionItem(f"{choice['uuid']}: {choice['title']}",
-                                                      self.__assign, [meter, channel, choice['uuid'], '30m'],
+                    map_menu.append_item(FunctionItem(f"{choice.uuid}: {choice.title}",
+                                                      self.__assign, [meter, channel, choice.uuid, '30m'],
                                                       should_exit=True))
                 map_menu.append_item(FunctionItem("Enter private UUID",
                                                   self.__assign, [meter, channel, None, '30m'],
                                                   should_exit=True))
-                meter_menu.append_item(SubmenuItem(f"{channel}: {value[0]} {value[1]}", map_menu, self.menu))
-            submenu_item = SubmenuItem(f"Meter {meter.identifier}", meter_menu, self.menu)
+                meter_menu.append_item(
+                    SubmenuItem(f"{channel.channel_name}: {channel.value} {channel.unit}", map_menu, self.menu))
+            submenu_item = SubmenuItem(f"Meter {meter.meter_id}", meter_menu, self.menu)
 
             self.menu.append_item(submenu_item)
 
@@ -88,8 +100,13 @@ class Wizard:
 
         self.menu.show()
 
-    def __register_service(self):
+    def __register_service(self) -> None:
         self.menu.clear_screen()
+        if platform.system() != "Linux":
+            self.menu.stdscr.addstr(0, 0, "Systemd Service registration is only supported on Linux!")
+            self.menu.stdscr.addstr(1, 0, "(press any key)")
+            self.menu.stdscr.getkey()
+            return
         self.menu.stdscr.addstr(0, 0, "Installing service...")
         run('sudo systemctl stop pymeterreader',  # pylint: disable=subprocess-run-check
             universal_newlines=True,
@@ -97,51 +114,59 @@ class Wizard:
 
         target_service_file = "/etc/systemd/system/pymeterreader.service"
 
-        service_str = SERVICE_TEMPLATE.format('pymeterreader -c /etc/pymeterreader.yaml')
+        service_str = SERVICE_TEMPLATE.format(f'pymeterreader -c {self.POSIX_CONFIG_PATH.absolute()}')
         try:
             with open(target_service_file, 'w') as target_file:
                 target_file.write(service_str)
             run('systemctl daemon-reload',  # pylint: disable=subprocess-run-check
                 universal_newlines=True,
                 shell=True)
-            if not exists('/etc/pymeterreader.yaml'):
-                self.menu.stdscr.addstr(1, 0, "Copy example configuration file to '/etc/pymeterreader.yaml'")
+            if not exists(self.POSIX_CONFIG_PATH):
+                self.menu.stdscr.addstr(1, 0,
+                                        f"Copy example configuration file to '{self.POSIX_CONFIG_PATH.absolute()}'")
                 with open('example_configuration.yaml', 'r') as file:
                     example_config = file.read()
-                with open('/etc/pymeterreader.yaml', 'w') as file:
+                with open(self.POSIX_CONFIG_PATH, 'w') as file:
                     file.write(example_config)
-            self.menu.stdscr.addstr(2, 0, "Registered pymeterreader as servicee.\n"
+            self.menu.stdscr.addstr(2, 0, "Registered pymeterreader as service.\n"
                                           "Enable with 'sudo systemctl enable pymeterreader'\n."
-                                          "IMPORTANT: Create configuration file '/etc/pymeterreader.yaml'")
-        except OSError as err:
-            if isinstance(err, PermissionError):
-                self.menu.stdscr.addstr(4, 0, "Cannot write service file to /etc/systemd/system. "
-                                              "Run as root (sudo) to solve this.")
+                                          f"IMPORTANT: Create configuration file '{self.POSIX_CONFIG_PATH.absolute()}'")
+        except FileNotFoundError as err:
+            self.menu.stdscr.addstr(4, 0, f"Could not access file: {err}!")
+        except PermissionError:
+            self.menu.stdscr.addstr(4, 0, "Cannot write service file to /etc/systemd/system. "
+                                          "Run as root (sudo) to solve this.")
         self.menu.stdscr.addstr(6, 0, "(press any key)")
         self.menu.stdscr.getkey()
 
-    def __clear(self):
+    def __clear(self) -> None:
         """
         Remove channel mappings
         """
         self.channel_config.clear()
 
-    def __safe_mapping(self):
+    def __safe_mapping(self) -> None:
         """
         Save yaml to system
         """
         self.menu.clear_screen()
         result = generate_yaml(self.channel_config, self.url)
         try:
-            with open('/etc/pymeterreader.yaml', 'w') as config_file:
+            if platform.system() in ["Linux", "Darwin"]:
+                config_path = self.POSIX_CONFIG_PATH
+            else:
+                config_path = Path(".") / "pymeterreader.yaml"
+            with open(config_path, "w") as config_file:
                 config_file.write(result)
-            self.menu.stdscr.addstr(0, 0, "Saved to /etc/pymeterreader.yaml")
+            self.menu.stdscr.addstr(0, 0, f"Saved to {config_path.absolute()}")
         except PermissionError:
-            self.menu.stdscr.addstr(0, 0, "Insufficient permissions: cannot write to /etc/pymeterreader.yaml")
+            self.menu.stdscr.addstr(0, 0, f"Insufficient permissions: cannot write to {config_path.absolute()}!")
+        except FileNotFoundError:
+            self.menu.stdscr.addstr(0, 0, f"Could not access path: {config_path.absolute()}!")
         self.menu.stdscr.addstr(1, 0, "(press any key)")
         self.menu.stdscr.getkey()
 
-    def __view_mapping(self):
+    def __view_mapping(self) -> None:
         self.menu.clear_screen()
         self.menu.stdscr.addstr(0, 0, "Mapped channels:")
         row = 2
@@ -152,15 +177,16 @@ class Wizard:
         self.menu.stdscr.addstr(row, 0, "(press any key)")
         self.menu.stdscr.getkey()
 
-    def __assign(self, meter: Device, channel, uuid: str, interval: str):
+    def __assign(self, meter: Device, channel: ChannelValue, uuid: tp.Optional[str], interval: str) -> None:
         if uuid is None:
             self.menu.clear_screen()
             uuid = input("Enter private UUID: ")
-        if meter.identifier not in self.channel_config:
-            self.channel_config[meter.identifier] = {'channels': {},
-                                                     'id': meter.identifier,
-                                                     'protocol': meter.protocol}
-        self.channel_config[meter.identifier]['channels'][channel] = {
+        if meter.meter_id not in self.channel_config:
+            self.channel_config[meter.meter_id] = {'channels': {},
+                                                   'protocol': meter.protocol,
+                                                   'meter_address': meter.meter_address,
+                                                   'meter_id': meter.meter_id}
+        self.channel_config[meter.meter_id]['channels'][channel.channel_name] = {
             'uuid': uuid,
             'interval': interval
         }

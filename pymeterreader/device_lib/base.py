@@ -2,71 +2,58 @@
 Base Reader (ABC)
 Created 2020.10.12 by Oliver Schwaneberg
 """
+import logging
 import typing as tp
 from abc import ABC, abstractmethod
-from logging import warning
-from pymeterreader.device_lib.common import Sample, Device
+
+from pymeterreader.device_lib.common import Sample, Device, strip
+
+logger = logging.getLogger(__name__)
 
 
 class BaseReader(ABC):
     """
-    Reads meters with SML output via
-    EN 62056-21:2002 compliant optical interfaces.
-    Tested with EMH eHZ electrical meters
-    See https://en.wikipedia.org/wiki/IEC_62056
+    Implementation Base for a Meter Protocol
     """
     PROTOCOL = "ABSTRACT"
-    BOUND_INTERFACES = set()
 
     @abstractmethod
-    def __init__(self, meter_id: tp.Union[str, int], tty=r'/dev/ttyUSB\d+', **kwargs):
+    def __init__(self, meter_id: tp.Union[str, int, None] = None, **kwargs) -> None:
         """
         Initialize Meter Reader object
-        :param meter_id: meter identification string (e.g. '1 EMH00 12345678')
-        :param tty: Name or regex pattern of the tty node to use
-        :kwargs: device specific parameters
+        :param meter_id: optional meter identification string (e.g. '1 EMH00 12345678')
+        :kwargs: implementation specific parameters
         """
-        self.meter_id = meter_id
-        self.tty_pattern = tty
-        self._tty_path = None
+        self.meter_id: tp.Optional[str] = None
+        if meter_id is not None:
+            self.meter_id = str(meter_id)
         if kwargs:
-            warning(f'Unknown parameter{"s" if len(kwargs) > 1 else ""}:'
-                    f' {", ".join(kwargs.keys())}')
+            logger.warning(f'Unknown parameter{"s" if len(kwargs) > 1 else ""}:'
+                           f' {", ".join(kwargs.keys())}')
 
     @staticmethod
-    def detect(devices: tp.List[Device], tty=r'/dev/ttyUSB\d+'):
+    @abstractmethod
+    def detect(**kwargs) -> tp.List[Device]:
         """
-        Detect available devices at matching tty interfaces
-        :param devices: List of previously detected devices, that will be extended
-        :param tty: Regex to filter tty device nodes
+        Detect available devices on all possible interfaces
+        :kwargs: parameters for the classes that implement detection
         """
-
-    def __del__(self):
-        """
-        Set bound interface free
-        """
-        self.tty_path = None
-
-    @property
-    def tty_path(self):
-        return self._tty_path
-
-    @tty_path.setter
-    def tty_path(self, tty_path):
-        if self._tty_path is not None:
-            # Set current interface free
-            self.BOUND_INTERFACES.remove(self._tty_path)
-        if tty_path is not None:
-            # Claim new interface
-            if tty_path in self.BOUND_INTERFACES:
-                raise KeyError(f"{tty_path} already in use.")
-            self.BOUND_INTERFACES.add(tty_path)
-        self._tty_path = tty_path
+        raise NotImplementedError("This is just an abstract class.")
 
     @abstractmethod
     def poll(self) -> tp.Optional[Sample]:
         """
-        Poll the reader and retrievee a new sample
+        Poll the reader and retrieve a new sample
         :return: Sample, if successful else None
         """
         raise NotImplementedError("This is just an abstract class.")
+
+    def meter_id_matches(self, sample: Sample) -> bool:
+        """
+        Compare the meter_id of this Reader to the one supplied in the sample
+        """
+        if self.meter_id is None or strip(self.meter_id) in strip(sample.meter_id):
+            return True
+        logger.warning(
+            f"Meter ID in {self.PROTOCOL} sample {sample.meter_id} does not match expected ID {self.meter_id}")
+        return False
