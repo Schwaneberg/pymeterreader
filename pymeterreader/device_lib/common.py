@@ -6,6 +6,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from string import digits, ascii_letters, punctuation
 
+import humanfriendly
+
 LEGAL_CHARACTERS = digits + ascii_letters + punctuation
 
 
@@ -48,3 +50,14 @@ def strip(string: str) -> str:
     :return: stripped string
     """
     return ''.join([char for char in string if char in LEGAL_CHARACTERS]).strip().upper()
+
+
+def humanfriendly_time_parser(humanfriendly_input: tp.Union[int, float, str]) -> int:
+    """
+    Convert a time definition from a string to a int.
+    :param humanfriendly_input: Strings like '5s', '10m', '24h' or '1d'
+    :returns the input time in seconds as int
+    """
+    if isinstance(humanfriendly_input, str):
+        return humanfriendly.parse_timespan(humanfriendly_input)
+    return int(humanfriendly_input)

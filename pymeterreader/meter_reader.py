@@ -8,11 +8,11 @@ import signal
 import typing as tp
 from datetime import datetime, timezone
 
-import humanfriendly
 from yaml import load, FullLoader
 
 from pymeterreader.core import MeterReaderTask, MeterReaderNode, ChannelUploadInfo
 from pymeterreader.device_lib import strip, SmlReader, PlainReader, Bme280Reader, BaseReader
+from pymeterreader.device_lib.common import humanfriendly_time_parser
 from pymeterreader.gateway import BaseGateway, VolkszaehlerGateway, DebugGateway
 
 PARSER = argparse.ArgumentParser(description='MeterReader reads out supported devices '
@@ -21,17 +21,6 @@ PARSER = argparse.ArgumentParser(description='MeterReader reads out supported de
 
 PARSER.add_argument('-d', '--debug', help='Make process chatty.', action='store_true')
 PARSER.add_argument('-c', '--configfile', help="Path to the config file", default='/etc/meter_reader.yaml')
-
-
-def humanfriendly_time_parser(humanfriendly_input: tp.Union[int, float, str]) -> int:
-    """
-    Convert a time definition from a string to a int.
-    :param humanfriendly_input: Strings like '5s', '10m', '24h' or '1d'
-    :returns the input time in seconds as int
-    """
-    if isinstance(humanfriendly_input, str):
-        return humanfriendly.parse_timespan(humanfriendly_input)
-    return int(humanfriendly_input)
 
 
 def map_configuration(config: dict) -> tp.List[MeterReaderNode]:  # noqa MC0001
