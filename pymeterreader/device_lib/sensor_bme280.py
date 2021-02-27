@@ -188,24 +188,7 @@ class Bme280Reader(BaseReader):
         logger.warning("Using default meter_address 0x76!")
         return 0x76
 
-    def poll(self) -> tp.Optional[Sample]:
-        """
-        Public method for polling a Sample from the meter. Enforces that the meter_id matches.
-        :return: Sample, if successful
-        """
-        sample = self.__fetch_sample()
-        if sample is not None:
-            if self.meter_id_matches(sample):
-                return sample
-            # Reset calibration_data to allow for rediscovery even when cache_calibration is active
-            self.__calibration_data = None
-        return None
-
-    def __fetch_sample(self) -> tp.Optional[Sample]:
-        """
-        Try to retrieve a Sample from any connected sensor with the current configuration
-        :return: Sample, if successful
-        """
+    def fetch(self) -> tp.Optional[Sample]:
         # pylint: disable=too-many-locals
         try:
             with Bme280Reader.I2C_BUS_LOCK:
@@ -540,7 +523,7 @@ class Bme280Reader(BaseReader):
         # Only the first i2c_bus is scanned
         for address in addresses:
             reader = Bme280Reader(address, cache_calibration=False, **kwargs)
-            sample = reader.poll()
+            sample = reader.fetch()
             if sample is not None:
                 devices.append(
                     Device(sample.meter_id, f"{hex(address)}@I2C({reader.i2c_bus})", "BME280", sample.channels))

@@ -41,7 +41,7 @@ class TestSmlReader(unittest.TestCase):
         simulator = SmlMeterSimulator()
         simulator.start()
         reader = SmlReader("loop://", meter_id="1EMH004921570")
-        sample = reader.poll()
+        sample = reader.retrieve()
         simulator.stop()
         self.assertFalse(shared_serial_instance.is_open)
         self.assertEqual(sample.meter_id, simulator.get_meter_id())
@@ -49,7 +49,7 @@ class TestSmlReader(unittest.TestCase):
 
     def test_init_fail(self):
         reader = SmlReader("loop://", meter_id="1EMH004921570")
-        sample = reader.poll()
+        sample = reader.retrieve()
         self.assertIsNone(sample)
 
     @mock.patch('serial.tools.list_ports.grep', autospec=True)

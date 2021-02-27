@@ -43,22 +43,7 @@ class PlainReader(SerialReader):
         self.__initial_baudrate = initial_baudrate
         self.__baudrate = baudrate
 
-    def poll(self) -> tp.Optional[Sample]:
-        """
-        Public method for polling a Sample from the meter. Enforces that the meter_id matches.
-        :return: Sample, if successful
-        """
-        sample = self.__fetch_sample()
-        if sample is not None:
-            if self.meter_id_matches(sample):
-                return sample
-        return None
-
-    def __fetch_sample(self) -> tp.Optional[Sample]:
-        """
-        Try to retrieve a Sample from any connected meter with the current configuration
-        :return: Sample, if successful
-        """
+    def fetch(self) -> tp.Optional[Sample]:
         try:
             # Acquire Lock to prevent pySerial exceptions when trying to access the serial port concurrently
             with self._serial_lock:
@@ -104,7 +89,7 @@ class PlainReader(SerialReader):
         """
         Returns a Device if the class extending SerialReader can discover a meter with the configured settings
         """
-        sample = self.__fetch_sample()
+        sample = self.fetch()
         if sample is not None:
             return Device(sample.meter_id, self.serial_url, self.PROTOCOL, sample.channels)
         return None

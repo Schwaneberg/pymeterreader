@@ -8,6 +8,7 @@ devices:
     meter_id: 1 EMH00 12345678 # Optional Check that enforces a specific meter id
     protocol: sml
     baudrate: 9600
+    cache_interval: 1s
   heat meter:
     channels:
       6.8:
@@ -17,6 +18,7 @@ devices:
     meter_id: 888777666 # Optional Check that enforces a specific meter id
     protocol: plain
     meter_address: rfc2217://1.2.3.4:4001
+    cache_interval: 3s
   climate basement:
     channels:
       humidity:

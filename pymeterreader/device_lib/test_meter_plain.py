@@ -73,14 +73,14 @@ class TestPlainReader(unittest.TestCase):
         simulator = SimplePlainMeterSimulator()
         simulator.start()
         reader = PlainReader("loop://")
-        sample = reader.poll()
+        sample = reader.retrieve()
         simulator.stop()
         self.assertEqual(sample.meter_id, simulator.get_meter_id())
         self.assertEqual(sample.channels, simulator.get_channels())
 
     def test_init_fail(self):
         reader = PlainReader("loop://")
-        sample = reader.poll()
+        sample = reader.retrieve()
         self.assertIsNone(sample)
 
     @mock.patch('serial.tools.list_ports.grep', autospec=True)

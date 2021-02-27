@@ -108,7 +108,7 @@ class TestBme280(unittest.TestCase):
     def test_readout(self, mock_smbus):
         mock_smbus.return_value = MockBus(0x76, bm280_testdata)
         reader = Bme280Reader("0x76")
-        sample = reader.poll()
+        sample = reader.retrieve()
         self.assertEqual(bm280_testdata.channels, sample.channels)
         self.assertEqual(bm280_testdata.meter_id, sample.meter_id)
 
@@ -116,7 +116,7 @@ class TestBme280(unittest.TestCase):
     def test_read_wrong_address(self, mock_smbus):
         mock_smbus.return_value = MockBus(0x76, bm280_testdata)
         reader = Bme280Reader("0x77")
-        sample = reader.poll()
+        sample = reader.retrieve()
         self.assertIsNone(sample)
 
     @mock.patch("pymeterreader.device_lib.sensor_bme280.SMBus", autospec=True)
