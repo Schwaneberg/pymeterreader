@@ -1,6 +1,6 @@
 import logging
 import typing as tp
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from pymeterreader.core.channel_upload_info import ChannelUploadInfo
 from pymeterreader.device_lib import BaseReader, Sample, strip
@@ -43,7 +43,7 @@ class MeterReaderNode:
                 return a
             return hcf_naive(b, a % b)
 
-        intervals = [channel.interval for channel in self.__channels.values()]
+        intervals = [int(channel.interval.total_seconds()) for channel in self.__channels.values()]
         while len(intervals) > 1:
             intervals = [hcf_naive(intervals[i], intervals[i + 1])
                          if i + 1 < len(intervals) else intervals[i]
@@ -83,7 +83,7 @@ class MeterReaderNode:
                         if cur_channel in self.__channels:
                             cur_value = self.__cast_value(channel.value, self.__channels[cur_channel].factor)
                             next_scheduled_upload = self.__channels[cur_channel].last_upload \
-                                                    + timedelta(0, self.__channels[cur_channel].interval)
+                                                    + self.__channels[cur_channel].interval
                             if next_scheduled_upload <= now:
                                 if self.__gateway.post(self.__channels[cur_channel],
                                                        cur_value,

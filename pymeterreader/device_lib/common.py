@@ -3,7 +3,7 @@ Common code for all readers
 """
 import typing as tp
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from string import digits, ascii_letters, punctuation
 
 import humanfriendly
@@ -52,12 +52,16 @@ def strip(string: str) -> str:
     return ''.join([char for char in string if char in LEGAL_CHARACTERS]).strip().upper()
 
 
-def humanfriendly_time_parser(humanfriendly_input: tp.Union[int, float, str]) -> int:
+def humanfriendly_time_parser(humanfriendly_input: tp.Optional[tp.Union[int, float, str]]) -> timedelta:
     """
     Convert a time definition from a string to a int.
     :param humanfriendly_input: Strings like '5s', '10m', '24h' or '1d'
     :returns the input time in seconds as int
     """
-    if isinstance(humanfriendly_input, str):
-        return humanfriendly.parse_timespan(humanfriendly_input)
-    return int(humanfriendly_input)
+    time_seconds: int = 0
+    if humanfriendly_input is not None:
+        if isinstance(humanfriendly_input, str):
+            time_seconds = humanfriendly.parse_timespan(humanfriendly_input)
+        elif isinstance(humanfriendly_input, (int, float)):
+            time_seconds = int(humanfriendly_input)
+    return timedelta(0, time_seconds)
