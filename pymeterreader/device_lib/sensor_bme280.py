@@ -514,16 +514,21 @@ class Bme280Reader(BaseReader):
         """
         calibration_hash = sha256(str(calibration_data).encode())
         # Prefixing the sensor type guards against calibration data collisions between different sensor types
-        if chip_id == 0x60:
-            sensor_type = "BME280-"
-        elif chip_id in [0x56, 0x57]:
-            sensor_type = "BMP280(Sample)-"
-        elif chip_id == 0x58:
-            sensor_type = "BMP280-"
-        else:
+        sensor_type = Bme280Reader.type_from_chip_id(chip_id)
+        if sensor_type is None:
             # meter_id matching will still succeed when the prefix is not explicitly specified
             sensor_type = ""
-        return f"{sensor_type}{calibration_hash.hexdigest()}"
+        return f"{sensor_type}-{calibration_hash.hexdigest()}"
+
+    @staticmethod
+    def type_from_chip_id(chip_id: int = 0) -> tp.Optional[str]:
+        if chip_id == 0x60:
+            return "BME280"
+        if chip_id == 0x58:
+            return "BMP280"
+        if chip_id in [0x56, 0x57]:
+            return "BMP280(Sample)"
+        return None
 
     @staticmethod
     def detect(**kwargs) -> tp.List[Device]:
