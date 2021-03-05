@@ -32,13 +32,13 @@ class MeterReaderNode:
         self.__gateway = gateway
 
     @property
-    def poll_interval(self):
+    def poll_interval(self) -> int:
         """
         This property indicates the optimal interval to poll this node
         :return: greatest common divisor
         """
 
-        def hcf_naive(a, b):
+        def hcf_naive(a: int, b: int) -> int:
             if b == 0:
                 return a
             return hcf_naive(b, a % b)
@@ -48,7 +48,8 @@ class MeterReaderNode:
             intervals = [hcf_naive(intervals[i], intervals[i + 1])
                          if i + 1 < len(intervals) else intervals[i]
                          for i in range(0, len(intervals), 2)]
-        return intervals[0]
+        # Poll every 5 minutes if polling is disabled
+        return next(iter(intervals), 600)
 
     @staticmethod
     def __cast_value(value_orig: tp.Union[str, int, float], factor) -> tp.Union[int, float]:

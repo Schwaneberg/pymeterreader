@@ -1,9 +1,6 @@
 devices:
   electric meter:
-    channels:
-      1.8.0:
-        uuid: c07ef180-e4c6-11e9-95a6-434024b862ef
-        interval: 5m
+    #channels: only need to be configured for the volkszaehler middleware
     meter_address: /dev/serial0 # All pySerial URL formats are supported(https://pyserial.readthedocs.io/en/latest/url_handlers.html#urls)
     meter_id: 1 EMH00 12345678 # Optional Check that enforces a specific meter id
     protocol: sml

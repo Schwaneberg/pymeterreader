@@ -46,7 +46,7 @@ def map_configuration(config: dict) -> tp.List[MeterReaderNode]:  # noqa MC0001
             if gateway is not None:
                 for meter_name, device in config.get('devices').items():
                     protocol = strip(device.pop('protocol'))
-                    configuration_channels = device.pop('channels')
+                    configuration_channels = device.pop('channels', {})
                     if protocol == 'SML':
                         reader: tp.Optional[BaseReader] = SmlReader(**device, meter_name=meter_name)
                     elif protocol == 'PLAIN':
