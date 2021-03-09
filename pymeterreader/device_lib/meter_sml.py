@@ -18,13 +18,14 @@ class SmlReader(SerialReader):
     """
     Reads meters with SML output via
     EN 62056-21:2002 compliant optical interfaces.
-    Tested with EMH eHZ electrical meters
+    Tested with EMH ED300L and ISKRA MT631 electrical meters
     See https://en.wikipedia.org/wiki/IEC_62056
     """
     PROTOCOL = "SML"
     __START_SEQ = b'\x1b\x1b\x1b\x1b\x01\x01\x01\x01'
     __END_SEQ = b'\x1b\x1b\x1b\x1b'
-    OBIS_CODE_METER_ID = "1-0:0.0.9*255"
+    OBIS_CODES_METER_ID = ["1-0:0.0.9*255", "1-0:96.1.0*255"]
+    OBIS_CODES_MANUFACTURER_ID = ["129-129:199.130.3", "1-0:96.50.1*1"]
 
     def __init__(self, meter_address: str, **kwargs) -> None:
         """
@@ -103,7 +104,7 @@ class SmlReader(SerialReader):
                         sample.channels.append(ChannelValue(obis_code, value, sml_entry.get('unit')))
                     else:
                         # Determine the meter_id from OBIS code
-                        if SmlReader.OBIS_CODE_METER_ID in obis_code:
+                        if obis_code in SmlReader.OBIS_CODES_METER_ID:
                             sample.meter_id = value
                         # Add Channels without unit
                         else:

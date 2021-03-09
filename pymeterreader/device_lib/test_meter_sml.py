@@ -9,9 +9,9 @@ from pymeterreader.device_lib.common import ChannelValue, Device
 from pymeterreader.device_lib.test_meter import StaticMeterSimulator, SerialTestData
 
 
-class SmlMeterSimulator(StaticMeterSimulator):
+class EmhSmlMeterSimulator(StaticMeterSimulator):
     """
-    Simulate a SML Meter that sends a measurement unsolicited
+    Simulate a EMH ED300L SML Meter that sends a measurement unsolicited
     """
 
     def __init__(self) -> None:
@@ -32,46 +32,71 @@ class SmlMeterSimulator(StaticMeterSimulator):
         super().__init__(test_data)
 
 
+class IskraSMLMeterSimulator(StaticMeterSimulator):
+    """
+    Simulate a ISKRA MT631 SML Meter that sends a measurement unsolicited
+    """
+
+    def __init__(self) -> None:
+        test_data = SerialTestData(
+            binary=b'\x1b\x1b\x1b\x1b\x01\x01\x01\x01v\x05\tLN\x1db\x00b\x00rc\x01\x01v\x01\x01\x05\x03\x19o_\x0b\n\x01ISK\x00\x045\xa9.rb\x01e\x03\x19p#b\x01c\xfe\x90\x00v\x05\tLN\x1eb\x00b\x00rc\x07\x01w\x01\x0b\n\x01ISK\x00\x045\xa9.\x07\x01\x00b\n\xff\xffrb\x01e\x03\x19p#uw\x07\x01\x00`2\x01\x01\x01\x01\x01\x01\x04ISK\x01w\x07\x01\x00`\x01\x00\xff\x01\x01\x01\x01\x0b\n\x01ISK\x00\x045\xa9.\x01w\x07\x01\x00\x01\x08\x00\xffe\x00\x1c)\x04\x01b\x1eR\xffe\x01"\xd9\x15\x01w\x07\x01\x00\x02\x08\x00\xff\x01\x01b\x1eR\xffe\x02\x8d\x94\x85\x01w\x07\x01\x00\x10\x07\x00\xff\x01\x01b\x1bR\x00S\xfe\xe4\x01\x01\x01c\xd6\xd5\x00v\x05\tLN\x1fb\x00b\x00rc\x02\x01q\x01cW\xe6\x00\x00\x1b\x1b\x1b\x1b\x1a\x01\x0b\x83',            meter_id='1 ISK 00 70625582',
+            channels=[ChannelValue(channel_name='1-0:96.50.1*1', value=b'ISK', unit=None),
+                      ChannelValue(channel_name='1-0:1.8.0*255', value=1906101.3, unit='Wh'),
+                      ChannelValue(channel_name='1-0:2.8.0*255', value=4283302.9, unit='Wh'),
+                      ChannelValue(channel_name='1-0:16.7.0*255', value=-284, unit='W')])
+        super().__init__(test_data)
+
+
 class TestSmlReader(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.simulators = [EmhSmlMeterSimulator, IskraSMLMeterSimulator]
+
     @mock.patch('serial.serial_for_url', autospec=True)
     def test_init(self, serial_for_url_mock):
-        # Create shared serial instance with unmocked import
-        shared_serial_instance = serial_for_url("loop://", baudrate=9600, timeout=5)
-        serial_for_url_mock.return_value = shared_serial_instance
-        simulator = SmlMeterSimulator()
-        simulator.start()
-        reader = SmlReader("loop://", meter_id="1EMH004921570")
-        sample = reader.retrieve()
-        simulator.stop()
-        self.assertFalse(shared_serial_instance.is_open)
-        self.assertEqual(sample.meter_id, simulator.get_meter_id())
-        self.assertEqual(sample.channels, simulator.get_channels())
+        for simulator_class in self.simulators:
+            with self.subTest("Simulated meter", simulator=simulator_class):
+                # Create shared serial instance with unmocked import
+                shared_serial_instance = serial_for_url("loop://", baudrate=9600, timeout=5)
+                serial_for_url_mock.return_value = shared_serial_instance
+                simulator = simulator_class()
+                simulator.start()
+                reader = SmlReader("loop://", meter_id=simulator.get_meter_id())
+                sample = reader.retrieve()
+                simulator.stop()
+                self.assertFalse(shared_serial_instance.is_open)
+                self.assertEqual(sample.meter_id, simulator.get_meter_id())
+                self.assertEqual(sample.channels, simulator.get_channels())
 
     def test_init_fail(self):
-        reader = SmlReader("loop://", meter_id="1EMH004921570")
+        reader = SmlReader("loop://", meter_id="")
         sample = reader.retrieve()
         self.assertIsNone(sample)
 
     @mock.patch('serial.tools.list_ports.grep', autospec=True)
     @mock.patch('serial.serial_for_url', autospec=True)
     def test_detect(self, serial_for_url_mock, list_ports_mock):
-        # Create serial instances with unmocked import
-        unconnected_serial_instance = serial_for_url("loop://", baudrate=9600, timeout=5)
-        shared_serial_instance = serial_for_url("loop://", baudrate=9600, timeout=5)
-        # Mock serial_for_url to return an unconnected instance and one with the simulator
-        serial_for_url_mock.side_effect = [shared_serial_instance, unconnected_serial_instance, shared_serial_instance]
-        # Create a Simulator. The simulator makes the first call to serial_for_url() and receives the shared instance
-        simulator = SmlMeterSimulator()
-        simulator.start()
-        # Mock available serial ports
-        list_ports_mock.return_value = [ListPortInfo("/dev/ttyUSB0"), ListPortInfo("/dev/ttyUSB1")]
-        # Start device detection. This triggers the remaining two calls to serial_for_url()
-        devices = SmlReader("unused://").detect()
-        simulator.stop()
-        self.assertFalse(shared_serial_instance.is_open)
-        self.assertEqual(len(devices), 1)
-        self.assertIn(Device(simulator.get_meter_id(), "/dev/ttyUSB1", "SML", simulator.get_channels()),
-                      devices)
+        for simulator_class in self.simulators:
+            with self.subTest("Simulated meter", simulator=simulator_class):
+                # Create serial instances with unmocked import
+                unconnected_serial_instance = serial_for_url("loop://", baudrate=9600, timeout=5)
+                shared_serial_instance = serial_for_url("loop://", baudrate=9600, timeout=5)
+                # Mock serial_for_url to return an unconnected instance and one with the simulator
+                serial_for_url_mock.side_effect = [shared_serial_instance,
+                                                   unconnected_serial_instance,
+                                                   shared_serial_instance]
+                # Create a Simulator. The simulator makes the first call to serial_for_url() and receives the shared instance
+                simulator = simulator_class()
+                simulator.start()
+                # Mock available serial ports
+                list_ports_mock.return_value = [ListPortInfo("/dev/ttyUSB0"), ListPortInfo("/dev/ttyUSB1")]
+                # Start device detection. This triggers the remaining two calls to serial_for_url()
+                devices = SmlReader("unused://").detect()
+                simulator.stop()
+                self.assertFalse(shared_serial_instance.is_open)
+                self.assertEqual(len(devices), 1)
+                self.assertIn(Device(simulator.get_meter_id(), "/dev/ttyUSB1", "SML", simulator.get_channels()),
+                              devices)
 
 
 if __name__ == '__main__':

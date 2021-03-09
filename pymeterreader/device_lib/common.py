@@ -17,7 +17,7 @@ class ChannelValue:
     Data storage object to represent a channel
     """
     channel_name: str
-    value: tp.Union[str, int, float]
+    value: tp.Union[str, int, float, bytes]
     unit: tp.Optional[str] = None
 
 
