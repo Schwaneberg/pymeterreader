@@ -69,7 +69,7 @@ class PlainReader(SerialReader):
             init: str = init_bytes.decode("utf-8")
             response: str = response_bytes.decode("utf-8")
             logger.debug(f"Plain response: ({init}){response}")
-            sample = self.__parse(response)
+            sample = PlainReader.__parse(response)
             if sample is not None:
                 return sample
             logger.error("Parsing the response did not yield a Sample!")

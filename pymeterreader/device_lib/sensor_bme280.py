@@ -136,7 +136,7 @@ class Bme280Reader(BaseReader):
             raise
         super().__init__(**kwargs)
         # Parse meter_address to a valid i2c address
-        self.i2c_address = self.validate_meter_address(meter_address)
+        self.i2c_address = Bme280Reader.validate_meter_address(meter_address)
         # Interpret sensor mode
         self.mode = Bme280SensorMode.FORCED
         if "normal" in mode:
@@ -234,14 +234,15 @@ class Bme280Reader(BaseReader):
             logger.debug("Parsing measurement")
             measurement_container = Bme280Reader.STRUCT_MEASUREMENT.parse(bytes(measurement))
             # Calculate fine temperature to enable temperature compensation for the other measurements
-            fine_temperature = self.calculate_fine_temperature(calibration_data, measurement_container.temp_raw)
+            fine_temperature = Bme280Reader.calculate_fine_temperature(calibration_data, measurement_container.temp_raw)
             # Calculate measurement results
-            temperature = self.calculate_temperature(fine_temperature)
-            pressure = self.calculate_pressure(calibration_data, measurement_container.press_raw,
+            temperature = Bme280Reader.calculate_temperature(fine_temperature)
+            pressure = Bme280Reader.calculate_pressure(calibration_data, measurement_container.press_raw,
                                                fine_temperature)
-            humidity = self.calculate_humidity(calibration_data, measurement_container.hum_raw, fine_temperature)
+            humidity = Bme280Reader.calculate_humidity(calibration_data, measurement_container.hum_raw,
+                                                       fine_temperature)
             # Determine meter_id
-            meter_id = self.derive_meter_id(calibration_data, chip_id)
+            meter_id = Bme280Reader.derive_meter_id(calibration_data, chip_id)
             # Return Sample
             return Sample(meter_id=meter_id, channels=[ChannelValue('TEMPERATURE', temperature, '°C'),
                                                        ChannelValue('PRESSURE', pressure, 'Pa'),
@@ -336,7 +337,7 @@ class Bme280Reader(BaseReader):
         # Read calibration registers from 0xE1 to 0xE7
         calibration_segment2 = bus.read_i2c_block_data(self.i2c_address, Bme280Reader.REG_ADDR_CALIBRATION2_START, 7)
         # Parse bytes in separate function
-        return self.parse_calibration_bytes(bytes(calibration_segment1), bytes(calibration_segment2))
+        return Bme280Reader.parse_calibration_bytes(bytes(calibration_segment1), bytes(calibration_segment2))
 
     def __read_status(self, bus: SMBus) -> tp.Tuple[bool, bool]:
         """

@@ -81,7 +81,7 @@ class MeterReaderNode:
                     if cur_unit is not None:
                         cur_channel = strip(channel.channel_name)
                         if cur_channel in self.__channels:
-                            cur_value = self.__cast_value(channel.value, self.__channels[cur_channel].factor)
+                            cur_value = MeterReaderNode.__cast_value(channel.value, self.__channels[cur_channel].factor)
                             next_scheduled_upload = self.__channels[cur_channel].last_upload \
                                                     + self.__channels[cur_channel].interval
                             if next_scheduled_upload <= now:

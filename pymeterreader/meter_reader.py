@@ -98,7 +98,7 @@ class MeterReader:
     """
     def __init__(self, config_file):
         signal.signal(signal.SIGINT, self.__keyboard_interrupt_handler)
-        config = self.__read_config_file(config_file)
+        config = MeterReader.__read_config_file(config_file)
         meter_reader_nodes = map_configuration(config)
         logging.info(f"Starting {len(meter_reader_nodes)} worker threads...")
         self.worker_threads = []

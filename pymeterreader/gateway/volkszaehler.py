@@ -49,7 +49,7 @@ class VolkszaehlerGateway(BaseGateway):
         return self.__post_value(channel.uuid, value, sample_timestamp)
 
     def __post_value(self, uuid: str, value: tp.Union[int, float], timestamp: datetime) -> bool:
-        rest_url = self.urljoin(self.url, self.DATA_PATH, uuid, self.SUFFIX)
+        rest_url = VolkszaehlerGateway.urljoin(self.url, self.DATA_PATH, uuid, self.SUFFIX)
         try:
             timestamp_utc_milliseconds = int(timestamp.timestamp() * 1000)
             data = {"ts": timestamp_utc_milliseconds, "value": value}
@@ -62,7 +62,7 @@ class VolkszaehlerGateway(BaseGateway):
         return False
 
     def get_upload_info(self, channel_info: ChannelUploadInfo) -> tp.Optional[ChannelUploadInfo]:
-        rest_url = self.urljoin(self.url, self.DATA_PATH, channel_info.uuid, self.SUFFIX)
+        rest_url = VolkszaehlerGateway.urljoin(self.url, self.DATA_PATH, channel_info.uuid, self.SUFFIX)
         params = {"options": 'raw', "to": int(time() * 1000)}
         try:
             response = requests.get(rest_url, params=params)
@@ -93,7 +93,7 @@ class VolkszaehlerGateway(BaseGateway):
         """
         Retrieve a dict of channels from the middleware
         """
-        channel_url = self.urljoin(self.url, 'channel.json')
+        channel_url = VolkszaehlerGateway.urljoin(self.url, 'channel.json')
         extracted_channels: tp.List[ChannelDescription] = []
         try:
             response = requests.get(channel_url)
