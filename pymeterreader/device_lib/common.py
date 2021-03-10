@@ -41,6 +41,8 @@ class Device:
     protocol: str
     channels: tp.List[ChannelValue] = field(default_factory=list)
 
+class ConfigurationError(Exception):
+    pass
 
 def strip(string: str) -> str:
     """

@@ -19,7 +19,7 @@ except ImportError:
     # Redefine SMBus to prevent crashes when evaluation the typing annotations
     SMBus = None
 from pymeterreader.device_lib.base import BaseReader
-from pymeterreader.device_lib.common import Sample, Device, ChannelValue
+from pymeterreader.device_lib.common import Sample, Device, ChannelValue, ConfigurationError
 
 logger = logging.getLogger(__name__)
 
@@ -144,7 +144,7 @@ class Bme280Reader(BaseReader):
         elif "forced" in mode:
             pass
         else:
-            logger.warning("Sensor mode can only be forced or normal!")
+            raise ConfigurationError("Sensor mode can only be forced or normal!")
         self.i2c_bus = i2c_bus
         self.standby_time = standby_time
         self.irr_filter_coefficient = irr_filter_coefficient
@@ -152,13 +152,17 @@ class Bme280Reader(BaseReader):
         self.humidity_oversampling = humidity_oversampling
         self.pressure_oversampling = pressure_oversampling
         self.cache_calibration = cache_calibration
+        # Test inputs
+        Bme280Reader.generate_register_config(standby_time, irr_filter_coefficient)
+        Bme280Reader.generate_register_ctrl_meas(self.mode, temperature_oversampling, pressure_oversampling)
+        Bme280Reader.generate_register_ctrl_hum(humidity_oversampling)
         # Reconfigure the sensor on first access
         self.__reconfiguration_required = True
         # Initialize calibration data cache
         self.__calibration_data: tp.Optional[Bme280CalibrationData] = None
 
     @staticmethod
-    def interpret_meter_address(meter_address: tp.Union[str, int]) -> tp.Optional[int]:
+    def interpret_meter_address(meter_address: tp.Union[str, int]) -> int:
         if isinstance(meter_address, int):
             return meter_address
         if isinstance(meter_address, str):
@@ -171,22 +175,17 @@ class Bme280Reader(BaseReader):
                 return int(address_str, 16)
             if address_str.isnumeric():
                 return int(address_str)
-            logger.error("meter_address str could not be parsed to an int!")
-        else:
-            logger.error("meter_address could not be parsed as int or str!")
-        return None
+            raise ConfigurationError("meter_address str could not be parsed to an int!")
+        raise ConfigurationError("meter_address could not be parsed as int or str!")
 
     @staticmethod
     def validate_meter_address(meter_address: tp.Union[str, int]) -> int:
         resolved_meter_address = Bme280Reader.interpret_meter_address(meter_address)
-        if resolved_meter_address is not None:
-            if resolved_meter_address not in [0x76, 0x77]:
-                logger.warning(f"Untypical address for BME280 specified:{resolved_meter_address}")
-            if 0 <= resolved_meter_address < 1024:
-                return resolved_meter_address
-            logger.error("I2C Address is out of the 10 Bit range")
-        logger.warning("Using default meter_address 0x76!")
-        return 0x76
+        if resolved_meter_address not in [0x76, 0x77]:
+            logger.warning(f"Untypical address for BME280 specified:{resolved_meter_address}")
+        if 0 <= resolved_meter_address < 1024:
+            return resolved_meter_address
+        raise ConfigurationError("I2C Address is out of the 10 Bit range")
 
     def fetch(self) -> tp.Optional[Sample]:
         # pylint: disable=too-many-locals
@@ -363,8 +362,12 @@ class Bme280Reader(BaseReader):
         This method configures the config register
         :param bus: an open i2c bus that is already protected by a Lock
         """
+        config_int = Bme280Reader.generate_register_config(standby_time, irr_filter_coefficient)
+        bus.write_byte_data(self.i2c_address, Bme280Reader.REG_ADDR_CONFIG, config_int)
+
+    @staticmethod
+    def generate_register_config(standby_time: float, irr_filter_coefficient: int) -> int:
         # Set the standby time
-        t_sb = 0b000
         if standby_time == 1000:
             t_sb = 0b101
         elif standby_time == 500:
@@ -380,11 +383,10 @@ class Bme280Reader(BaseReader):
         elif standby_time == 10:
             t_sb = 0b110
         elif standby_time == 0.5:
-            pass
+            t_sb = 0b000
         else:
-            logger.warning(f"Standby time value {standby_time} is invalid!")
+            raise ConfigurationError(f"Standby time value {standby_time} is invalid!")
         # Set irr filter coefficient
-        irr_filter = 0b000
         if irr_filter_coefficient == 16:
             irr_filter = 0b100
         elif irr_filter_coefficient == 8:
@@ -394,9 +396,9 @@ class Bme280Reader(BaseReader):
         elif irr_filter_coefficient == 2:
             irr_filter = 0b001
         elif irr_filter_coefficient == 0:
-            pass
+            irr_filter = 0b000
         else:
-            logger.warning(f"IRR filter coefficient value {irr_filter_coefficient} is invalid!")
+            raise ConfigurationError(f"IRR filter coefficient value {irr_filter_coefficient} is invalid!")
         # Disable SPI Interface
         spi3wire_enable = 0
         # Concatenate bit sequences
@@ -406,16 +408,19 @@ class Bme280Reader(BaseReader):
         config_byte = config_byte_struct.build({"t_sb": t_sb,
                                                 "irr_filter": irr_filter,
                                                 "spi3wire_enable": spi3wire_enable})
-        config_int = int.from_bytes(config_byte, endianness)
-        bus.write_byte_data(self.i2c_address, Bme280Reader.REG_ADDR_CONFIG, config_int)
+        return int.from_bytes(config_byte, endianness)
 
     def __set_register_ctrl_hum(self, bus: SMBus, humidity_oversampling: int) -> None:
         """
         This method configures the ctrl_hum register
         :param bus: an open i2c bus that is already protected by a Lock
         """
+        ctrl_hum_int = Bme280Reader.generate_register_ctrl_hum(humidity_oversampling)
+        bus.write_byte_data(self.i2c_address, Bme280Reader.REG_ADDR_CONTROL_HUMIDITY, ctrl_hum_int)
+
+    @staticmethod
+    def generate_register_ctrl_hum(humidity_oversampling: int) -> int:
         # Set humidity oversampling
-        osrs_h = 0b000
         if humidity_oversampling == 16:
             osrs_h = 0b101
         elif humidity_oversampling == 8:
@@ -427,21 +432,26 @@ class Bme280Reader(BaseReader):
         elif humidity_oversampling == 1:
             osrs_h = 0b001
         elif humidity_oversampling == 0:
-            pass
+            osrs_h = 0b000
         else:
-            logger.warning(f"Humidity oversampling value {humidity_oversampling} is invalid!")
-        # Concatenate bit sequences
-        ctrl_hum_byte = osrs_h
-        bus.write_byte_data(self.i2c_address, Bme280Reader.REG_ADDR_CONTROL_HUMIDITY, ctrl_hum_byte)
+            raise ConfigurationError(f"Humidity oversampling value {humidity_oversampling} is invalid!")
+        return osrs_h
 
-    def __set_register_ctrl_meas(self, bus: SMBus, mode_enum: Bme280SensorMode, temperature_oversampling: int, # noqa
+    def __set_register_ctrl_meas(self, bus: SMBus, mode_enum: Bme280SensorMode, temperature_oversampling: int,  # noqa
                                  pressure_oversampling: int) -> None:
         """
         This method configures the ctrl_meas register
         :param bus: an open i2c bus that is already protected by a Lock
         """
+        ctrl_meas_int = Bme280Reader.generate_register_ctrl_meas(mode_enum, temperature_oversampling,
+                                                                 pressure_oversampling)
+        bus.write_byte_data(self.i2c_address, Bme280Reader.REG_ADDR_CONTROL_MEASUREMENT, ctrl_meas_int)
+
+    # pylint: disable=too-many-branches
+    @staticmethod # noqa: MC0001
+    def generate_register_ctrl_meas(mode_enum: Bme280SensorMode, temperature_oversampling: int, # noqa: MC0001
+                                    pressure_oversampling: int) -> None:
         # Set temperature oversampling
-        osrs_t = 0b000
         if temperature_oversampling == 16:
             osrs_t = 0b101
         elif temperature_oversampling == 8:
@@ -453,11 +463,10 @@ class Bme280Reader(BaseReader):
         elif temperature_oversampling == 1:
             osrs_t = 0b001
         elif temperature_oversampling == 0:
-            pass
+            osrs_t = 0b000
         else:
-            logger.warning(f"Pressure oversampling value {temperature_oversampling} is invalid!")
+            raise ConfigurationError(f"Pressure oversampling value {temperature_oversampling} is invalid!")
         # Set pressure oversampling
-        osrs_p = 0b000
         if pressure_oversampling == 16:
             osrs_p = 0b101
         elif pressure_oversampling == 8:
@@ -469,24 +478,22 @@ class Bme280Reader(BaseReader):
         elif pressure_oversampling == 1:
             osrs_p = 0b001
         elif pressure_oversampling == 0:
-            pass
+            osrs_p = 0b000
         else:
-            logger.warning(f"Pressure oversampling value {pressure_oversampling} is invalid!")
+            raise ConfigurationError(f"Pressure oversampling value {pressure_oversampling} is invalid!")
         # Determine operation mode
-        mode = 0b00
         if mode_enum is Bme280SensorMode.NORMAL:
             mode = 0b11
         elif mode_enum is Bme280SensorMode.FORCED:
             mode = 0b01
         elif mode_enum is Bme280SensorMode.SLEEP:
-            pass
+            mode = 0b00
         else:
-            logger.warning(f"Measurement mode {mode_enum.name} is undefined!")
+            raise ConfigurationError(f"Measurement mode {mode_enum.name} is undefined!")
         # Concatenate bit sequences
         ctrl_meas_struct = BitStruct("osrs_t" / BitsInteger(3), "osrs_p" / BitsInteger(3), "mode" / BitsInteger(2))
         ctrl_meas_byte = ctrl_meas_struct.build({"osrs_t": osrs_t, "osrs_p": osrs_p, "mode": mode})
-        ctrl_meas_int = int.from_bytes(ctrl_meas_byte, endianness)
-        bus.write_byte_data(self.i2c_address, Bme280Reader.REG_ADDR_CONTROL_MEASUREMENT, ctrl_meas_int)
+        return int.from_bytes(ctrl_meas_byte, endianness)
 
     @staticmethod
     def derive_meter_id(calibration_data: Bme280CalibrationData, chip_id: int = 0) -> str:

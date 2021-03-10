@@ -5,6 +5,7 @@ Primary module
 import argparse
 import logging
 import signal
+import sys
 import typing as tp
 from datetime import datetime, timezone
 
@@ -12,7 +13,7 @@ from yaml import load, FullLoader
 
 from pymeterreader.core import MeterReaderTask, MeterReaderNode, ChannelUploadInfo
 from pymeterreader.device_lib import strip, SmlReader, PlainReader, Bme280Reader, BaseReader
-from pymeterreader.device_lib.common import humanfriendly_time_parser
+from pymeterreader.device_lib.common import humanfriendly_time_parser, ConfigurationError
 from pymeterreader.gateway import BaseGateway, VolkszaehlerGateway, DebugGateway
 
 PARSER = argparse.ArgumentParser(description='MeterReader reads out supported devices '
@@ -82,13 +83,16 @@ def map_configuration(config: dict) -> tp.List[MeterReaderNode]:  # noqa MC0001
                                 logging.warning(f"Cannot register channels for meter {reader.meter_id}.")
                         else:
                             logging.warning(f"Could not read meter id {reader.meter_id} using protocol {protocol}.")
+            return meter_reader_nodes
         except KeyError as err:
             logging.error(f"Error while processing configuration: {err}")
         except TypeError as err:
             logging.error(f"Missing required parameter in the configuration: {err}")
+        except ConfigurationError as err:
+            logging.error(f"Configuration incorrect: {err}")
     else:
         logging.error("Config file is incomplete.")
-    return meter_reader_nodes
+    sys.exit(1)
 
 
 class MeterReader:

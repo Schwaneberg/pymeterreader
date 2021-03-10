@@ -3,7 +3,7 @@ import unittest
 from dataclasses import dataclass
 from unittest import mock
 
-from pymeterreader.device_lib.common import ChannelValue, Device
+from pymeterreader.device_lib.common import ChannelValue, Device, ConfigurationError
 from pymeterreader.device_lib.sensor_bme280 import Bme280Reader
 from pymeterreader.device_lib.test_meter import TestData
 
@@ -140,8 +140,8 @@ class TestBme280(unittest.TestCase):
         # Test invalid inputs resolving to the default
         inputs_invalid = ["-", "0x400", "1024", 0x400, 1024]
         for i in inputs_invalid:
-            reader = Bme280Reader(meter_address=i)
-            self.assertEqual(reader.i2c_address, 0x76)
+            with self.assertRaises(ConfigurationError):
+                reader = Bme280Reader(meter_address=i)
 
 
 def create_testdata_dictstr(self) -> None:
