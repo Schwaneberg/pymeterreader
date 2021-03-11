@@ -20,15 +20,17 @@ class BaseReader(ABC):
     PROTOCOL = "ABSTRACT"
 
     @abstractmethod
-    def __init__(self, meter_id: tp.Union[str, int, None] = None,
+    def __init__(self, meter_id: tp.Union[str, int, None] = None, meter_name: str = "",
                  cache_interval: tp.Optional[tp.Union[int, float, str]] = None, **kwargs) -> None:
         """
         Initialize Meter Reader object
         :param meter_id: optional meter identification string (e.g. '1 EMH00 12345678')
+        :param meter_name: meter name as specified in the config
         :param cache_interval: enables the caching of samples in the specified timestamp
         :kwargs: implementation specific parameters
         """
         self.meter_id: tp.Optional[str] = None
+        self.meter_name = meter_name
         self.cache_interval = humanfriendly_time_parser(cache_interval)
         # Warn to avoid confusion from long cache runtimes
         cache_interval_seconds = self.cache_interval.total_seconds()

@@ -86,6 +86,15 @@ class TestBaseReader(unittest.TestCase):
                 self.assertIsNotNone(sample)
                 self.assertEqual(sample.meter_id, sample_id)
 
+    def test_meter_name_default(self) -> None:
+        reader = CountingReader("Address")
+        self.assertEqual(reader.meter_name, "")
+
+    def test_meter_name(self) -> None:
+        name = "my meter"
+        reader = CountingReader("Address", meter_name=name)
+        self.assertEqual(reader.meter_name, name)
+
 
 if __name__ == '__main__':
     unittest.main()
