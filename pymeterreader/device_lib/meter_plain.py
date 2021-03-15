@@ -46,7 +46,7 @@ class PlainReader(SerialReader):
         self.__initial_baudrate = initial_baudrate
         self.__baudrate = baudrate
 
-    def fetch(self) -> tp.Optional[Sample]:
+    def _fetch_untracked(self) -> tp.Optional[Sample]:
         try:
             # Acquire Lock to prevent pySerial exceptions when trying to access the serial port concurrently
             with self._serial_lock:

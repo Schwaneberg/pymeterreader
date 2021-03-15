@@ -9,10 +9,12 @@ from datetime import timedelta, datetime, timezone
 from time import time
 
 import requests
+from prometheus_client import Info, Counter
 
 from pymeterreader.core.channel_description import ChannelDescription
 from pymeterreader.core.channel_upload_info import ChannelUploadInfo
 from pymeterreader.gateway.basegateway import BaseGateway
+from pymeterreader.metrics.prefix import METRICS_PREFIX
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +25,10 @@ class VolkszaehlerGateway(BaseGateway):
     """
     DATA_PATH = "data"
     SUFFIX = ".json"
+    VOLKSZAEHLER_INFO = Info(METRICS_PREFIX + "volkszahler_gateway", "Information about the Volkszaehler Gateway")
+    POST_COUNTER = Counter(METRICS_PREFIX + "volkszahler_gateway_uploads", "Number of successful POST requests")
+    POST_FAILURE_COUNTER = Counter(METRICS_PREFIX + "volkszahler_gateway_failed_uploads",
+                                   "Number of failed POST requests")
 
     def __init__(self, middleware_url: str, interpolate: bool = True, **kwargs) -> None:
         """
@@ -33,6 +39,8 @@ class VolkszaehlerGateway(BaseGateway):
         super().__init__(**kwargs)
         self.url = middleware_url
         self.interpolate = interpolate
+        # Metrics
+        self.VOLKSZAEHLER_INFO.info({"url": middleware_url, "interpolation": str(interpolate)})
 
     def post(self, channel: ChannelUploadInfo, value: tp.Union[int, float], sample_timestamp: datetime,
              poll_timestamp: datetime) -> bool:
@@ -49,6 +57,7 @@ class VolkszaehlerGateway(BaseGateway):
         return self.__post_value(channel.uuid, value, sample_timestamp)
 
     def __post_value(self, uuid: str, value: tp.Union[int, float], timestamp: datetime) -> bool:
+        self.POST_COUNTER.inc()
         rest_url = VolkszaehlerGateway.urljoin(self.url, self.DATA_PATH, uuid, self.SUFFIX)
         try:
             timestamp_utc_milliseconds = int(timestamp.timestamp() * 1000)
@@ -59,6 +68,7 @@ class VolkszaehlerGateway(BaseGateway):
             return True
         except requests.exceptions.RequestException as req_err:
             logger.error(f'POST {data} to {rest_url}: {req_err}')
+        self.POST_FAILURE_COUNTER.inc()
         return False
 
     def get_upload_info(self, channel_info: ChannelUploadInfo) -> tp.Optional[ChannelUploadInfo]:

@@ -191,7 +191,7 @@ class Bme280Reader(BaseReader):
             return resolved_meter_address
         raise ConfigurationError("I2C Address is out of the 10 Bit range")
 
-    def fetch(self) -> tp.Optional[Sample]:
+    def _fetch_untracked(self) -> tp.Optional[Sample]:
         # pylint: disable=too-many-locals
         try:
             with Bme280Reader.I2C_BUS_LOCK:

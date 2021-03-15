@@ -8,7 +8,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from threading import Lock
 
-from prometheus_client import Metric
+from prometheus_client import Metric, Histogram, Counter
 from prometheus_client.metrics_core import InfoMetricFamily
 
 from pymeterreader.device_lib.common import Sample, Device, strip, humanfriendly_time_parser, ChannelValue
@@ -22,6 +22,10 @@ class BaseReader(ABC):
     Implementation Base for a Meter Protocol
     """
     PROTOCOL = "ABSTRACT"
+    FETCH_HISTOGRAM = Histogram(METRICS_PREFIX + "fetch_duration_seconds",
+                                "Runtime of fetching measurement from meters", ["meter_name"])
+    FETCH_SUCCESS_COUNTER = Counter(METRICS_PREFIX + "fetch_success",
+                                    "Number of successful measurement fetches", ["meter_name"])
 
     @abstractmethod
     def __init__(self, meter_id: tp.Union[str, int, None] = None, meter_name: str = "",
@@ -47,6 +51,9 @@ class BaseReader(ABC):
         if kwargs:
             logger.warning(f'Unknown parameter{"s" if len(kwargs) > 1 else ""}:'
                            f' {", ".join(kwargs.keys())}')
+        # Metrics
+        self.fetch_histogram = BaseReader.FETCH_HISTOGRAM.labels(self.meter_name)
+        self.fetch_success_counter = BaseReader.FETCH_SUCCESS_COUNTER.labels(self.meter_name)
 
     @staticmethod
     @abstractmethod
@@ -58,12 +65,25 @@ class BaseReader(ABC):
         raise NotImplementedError("This is just an abstract class.")
 
     @abstractmethod
-    def fetch(self) -> tp.Optional[Sample]:
+    def _fetch_untracked(self) -> tp.Optional[Sample]:
         """
-        Fetch a sample from any connected meter that is reachable with the current settings
+        Fetch a sample from any connected meter that is reachable with the current settings.
+        Intended only for usage in BaseReader! Use fetch() instead!
         :return: Sample, if successful else None
         """
-        raise NotImplementedError("This is just an abstract class.")
+        raise NotImplementedError("This method has to be implemented by readers.")
+
+    def fetch(self) -> tp.Optional[Sample]:
+        """
+        Fetch a sample from any connected meter that is reachable with the current settings.
+        This is a wrapper Method used to create metrics
+        :return: Sample, if successful else None
+        """
+        with self.fetch_histogram.time():
+            sample = self._fetch_untracked()
+        if sample is not None:
+            self.fetch_success_counter.inc()
+        return sample
 
     def poll(self) -> tp.Optional[Sample]:
         """

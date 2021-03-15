@@ -24,7 +24,7 @@ class CountingReader(BaseReader):
         with self.__access_lock:
             self.__fetch_possible = fetch_status
 
-    def fetch(self) -> tp.Optional[Sample]:
+    def _fetch_untracked(self) -> tp.Optional[Sample]:
         with self.__access_lock:
             if self.__fetch_possible:
                 self.counter += 1

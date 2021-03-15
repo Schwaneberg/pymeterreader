@@ -40,7 +40,7 @@ class SmlReader(SerialReader):
         """
         super().__init__(meter_address, **kwargs)
 
-    def fetch(self) -> tp.Optional[Sample]:
+    def _fetch_untracked(self) -> tp.Optional[Sample]:
         try:
             # Acquire Lock to prevent pySerial exceptions when trying to access the serial port concurrently
             with self._serial_lock:
