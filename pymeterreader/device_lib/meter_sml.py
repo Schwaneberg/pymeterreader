@@ -6,7 +6,7 @@ import logging
 import typing as tp
 
 import serial
-from sml import SmlBase, SmlFrame, SmlListEntry
+from sml import SmlBase, SmlFrame, SmlListEntry, SmlParserError
 
 from pymeterreader.device_lib.common import Sample, Device, ChannelValue
 from pymeterreader.device_lib.serial_reader import SerialReader
@@ -65,6 +65,8 @@ class SmlReader(SerialReader):
             logger.error("Could not parse the binary SML data")
         except AssertionError as err:
             logger.error(f"SML parsing failed: {err}")
+        except SmlParserError as err:
+            logger.error(f"SML parsing library failed decoding the frame: {err}")
         except serial.SerialException as err:
             logger.error(f"Serial Interface error: {err}")
         return None
