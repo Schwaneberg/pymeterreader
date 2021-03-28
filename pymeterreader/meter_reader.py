@@ -22,7 +22,7 @@ PARSER = argparse.ArgumentParser(description='MeterReader reads out supported de
                                              '(e.g. see https://volkszaehler.org/).')
 
 PARSER.add_argument('-d', '--debug', help='Make process chatty.', action='store_true')
-PARSER.add_argument('-c', '--configfile', help="Path to the config file", default='/etc/meter_reader.yaml')
+PARSER.add_argument('-c', '--configfile', help="Path to the config file", default='/etc/pymeterreader.yaml')
 
 
 def map_configuration(config: dict) -> tp.List[MeterReaderNode]:  # noqa MC0001

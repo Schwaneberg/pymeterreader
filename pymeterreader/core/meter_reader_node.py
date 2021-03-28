@@ -92,7 +92,7 @@ class MeterReaderNode:
                                                        now):
                                     self.__channels[cur_channel].last_upload = now
                                     self.__channels[cur_channel].last_value = cur_value
-                                    logging.debug(f"POST {cur_value}{cur_unit} to {self.__channels[cur_channel].uuid}")
+                                    logging.debug(f"POST {cur_value}{cur_unit} to {self.__channels[cur_channel]}")
                                     posted += 1
                                 else:
                                     logging.error(f"POST to {self.__channels[cur_channel].uuid} failed!")
