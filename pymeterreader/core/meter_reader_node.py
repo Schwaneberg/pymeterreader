@@ -1,6 +1,6 @@
 import logging
 import typing as tp
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from pymeterreader.core.channel_upload_info import ChannelUploadInfo
 from pymeterreader.device_lib import BaseReader, Sample, strip
@@ -32,23 +32,24 @@ class MeterReaderNode:
         self.__gateway = gateway
 
     @property
-    def poll_interval(self):
+    def poll_interval(self) -> int:
         """
         This property indicates the optimal interval to poll this node
         :return: greatest common divisor
         """
 
-        def hcf_naive(a, b):
+        def hcf_naive(a: int, b: int) -> int:
             if b == 0:
                 return a
             return hcf_naive(b, a % b)
 
-        intervals = [channel.interval for channel in self.__channels.values()]
+        intervals = [int(channel.interval.total_seconds()) for channel in self.__channels.values()]
         while len(intervals) > 1:
             intervals = [hcf_naive(intervals[i], intervals[i + 1])
                          if i + 1 < len(intervals) else intervals[i]
                          for i in range(0, len(intervals), 2)]
-        return intervals[0]
+        # Poll every 5 minutes if polling is disabled
+        return next(iter(intervals), 600)
 
     @staticmethod
     def __cast_value(value_orig: tp.Union[str, int, float], factor) -> tp.Union[int, float]:
@@ -81,9 +82,9 @@ class MeterReaderNode:
                     if cur_unit is not None:
                         cur_channel = strip(channel.channel_name)
                         if cur_channel in self.__channels:
-                            cur_value = self.__cast_value(channel.value, self.__channels[cur_channel].factor)
+                            cur_value = MeterReaderNode.__cast_value(channel.value, self.__channels[cur_channel].factor)
                             next_scheduled_upload = self.__channels[cur_channel].last_upload \
-                                                    + timedelta(0, self.__channels[cur_channel].interval)
+                                                    + self.__channels[cur_channel].interval
                             if next_scheduled_upload <= now:
                                 if self.__gateway.post(self.__channels[cur_channel],
                                                        cur_value,

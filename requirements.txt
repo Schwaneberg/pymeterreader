@@ -6,3 +6,4 @@ PyYAML
 smbus2
 construct
 curses-menu
+prometheus-client

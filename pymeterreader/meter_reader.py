@@ -5,15 +5,17 @@ Primary module
 import argparse
 import logging
 import signal
+import sys
 import typing as tp
 from datetime import datetime, timezone
 
-import humanfriendly
 from yaml import load, FullLoader
 
 from pymeterreader.core import MeterReaderTask, MeterReaderNode, ChannelUploadInfo
 from pymeterreader.device_lib import strip, SmlReader, PlainReader, Bme280Reader, BaseReader
+from pymeterreader.device_lib.common import humanfriendly_time_parser, ConfigurationError
 from pymeterreader.gateway import BaseGateway, VolkszaehlerGateway, DebugGateway
+from pymeterreader.metrics.metrics_collector import MetricsJiTCollector
 
 PARSER = argparse.ArgumentParser(description='MeterReader reads out supported devices '
                                              'and forwards the data to a middleware '
@@ -21,17 +23,6 @@ PARSER = argparse.ArgumentParser(description='MeterReader reads out supported de
 
 PARSER.add_argument('-d', '--debug', help='Make process chatty.', action='store_true')
 PARSER.add_argument('-c', '--configfile', help="Path to the config file", default='/etc/meter_reader.yaml')
-
-
-def humanfriendly_time_parser(humanfriendly_input: tp.Union[int, float, str]) -> int:
-    """
-    Convert a time definition from a string to a int.
-    :param humanfriendly_input: Strings like '5s', '10m', '24h' or '1d'
-    :returns the input time in seconds as int
-    """
-    if isinstance(humanfriendly_input, str):
-        return humanfriendly.parse_timespan(humanfriendly_input)
-    return int(humanfriendly_input)
 
 
 def map_configuration(config: dict) -> tp.List[MeterReaderNode]:  # noqa MC0001
@@ -44,6 +35,11 @@ def map_configuration(config: dict) -> tp.List[MeterReaderNode]:  # noqa MC0001
     meter_reader_nodes = []
     if 'devices' in config and 'middleware' in config:
         try:
+            # Configure Prometheus integration
+            metrics_config = config.get("metrics", None)
+            if metrics_config is not None:
+                metrics_collector = MetricsJiTCollector(**metrics_config)
+            # Configure Middleware uploads
             middleware_type = config.get('middleware').pop('type')
             middleware_configuration: dict = config.get('middleware')
             if middleware_type == 'volkszaehler':
@@ -54,19 +50,22 @@ def map_configuration(config: dict) -> tp.List[MeterReaderNode]:  # noqa MC0001
                 logging.error(f'Middleware "{middleware_type}" not supported!')
                 gateway = None
             if gateway is not None:
-                for device in config.get('devices').values():
+                for meter_name, device in config.get('devices').items():
                     protocol = strip(device.pop('protocol'))
-                    configuration_channels = device.pop('channels')
+                    configuration_channels = device.pop('channels', {})
                     if protocol == 'SML':
-                        reader: tp.Optional[BaseReader] = SmlReader(**device)
+                        reader: tp.Optional[BaseReader] = SmlReader(**device, meter_name=meter_name)
                     elif protocol == 'PLAIN':
-                        reader = PlainReader(**device)
+                        reader = PlainReader(**device, meter_name=meter_name)
                     elif protocol == 'BME280':
-                        reader = Bme280Reader(**device)
+                        reader = Bme280Reader(**device, meter_name=meter_name)
                     else:
                         logging.error(f'Unsupported protocol {protocol}')
                         reader = None
                     if reader is not None:
+                        # Register Reader to be polled by Prometheus
+                        if metrics_config is not None:
+                            metrics_collector.register_reader(reader)
                         sample = reader.poll()
                         if sample is not None:
                             available_channels = {}
@@ -74,13 +73,14 @@ def map_configuration(config: dict) -> tp.List[MeterReaderNode]:  # noqa MC0001
                                 for configuration_channel_name, configuration_channel in configuration_channels.items():
                                     interval = humanfriendly_time_parser(configuration_channel.get('interval', '1h'))
                                     uuid = configuration_channel.get('uuid')
-                                    factor = configuration_channel.get('factor', 1)
+                                    factor = configuration_channel.get('factor', 1.0)
                                     if strip(str(configuration_channel_name)) in strip(sample_channel.channel_name):
                                         zero_datetime = datetime.fromtimestamp(0, timezone.utc)
                                         upload_info = ChannelUploadInfo(uuid, interval, factor, zero_datetime, - 1)
                                         # Replacing config string with exact match
                                         available_channels[sample_channel.channel_name] = upload_info
-                            if available_channels:
+                            # Do not require configuring channels if Prometheus Server is active
+                            if len(available_channels) > 0 or metrics_config is not None:
                                 meter_reader_node = MeterReaderNode(available_channels,
                                                                     reader,
                                                                     gateway)
@@ -93,13 +93,16 @@ def map_configuration(config: dict) -> tp.List[MeterReaderNode]:  # noqa MC0001
                                 logging.warning(f"Cannot register channels for meter {reader.meter_id}.")
                         else:
                             logging.warning(f"Could not read meter id {reader.meter_id} using protocol {protocol}.")
+            return meter_reader_nodes
         except KeyError as err:
             logging.error(f"Error while processing configuration: {err}")
         except TypeError as err:
             logging.error(f"Missing required parameter in the configuration: {err}")
+        except ConfigurationError as err:
+            logging.error(f"Configuration incorrect: {err}")
     else:
         logging.error("Config file is incomplete.")
-    return meter_reader_nodes
+    sys.exit(1)
 
 
 class MeterReader:
@@ -109,7 +112,7 @@ class MeterReader:
     """
     def __init__(self, config_file):
         signal.signal(signal.SIGINT, self.__keyboard_interrupt_handler)
-        config = self.__read_config_file(config_file)
+        config = MeterReader.__read_config_file(config_file)
         meter_reader_nodes = map_configuration(config)
         logging.info(f"Starting {len(meter_reader_nodes)} worker threads...")
         self.worker_threads = []

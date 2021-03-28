@@ -8,9 +8,11 @@ from threading import Lock
 
 import serial
 import serial.tools.list_ports
+from prometheus_client import Counter
 
 from pymeterreader.device_lib.base import BaseReader
 from pymeterreader.device_lib.common import Device
+from pymeterreader.metrics.prefix import METRICS_PREFIX
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +21,8 @@ class SerialReader(BaseReader):
     """"
     Implementation Base for Meter Protocols that utilize a Serial Connection
     """
+    SERIAL_INIT_COUNTER = Counter(METRICS_PREFIX + "serial_initializations",
+                                  "Number of pyserial initializations", ["meter_name"])
 
     # pylint: disable=too-many-arguments
     @abstractmethod
@@ -47,6 +51,8 @@ class SerialReader(BaseReader):
             self.parity = serial.PARITY_EVEN
         elif "ODD" in parity:
             self.parity = serial.PARITY_ODD
+        # Metrics
+        self.serial_init_counter = SerialReader.SERIAL_INIT_COUNTER.labels(self.meter_name)
 
     def initialize_serial_port(self, do_not_open: bool = True) -> serial.SerialBase:
         """
@@ -62,6 +68,7 @@ class SerialReader(BaseReader):
                                                           stopbits=self.stopbits,
                                                           timeout=self.timeout,
                                                           do_not_open=do_not_open)
+            self.serial_init_counter.inc()
         return self._serial_instance
 
     def _detect_serial_devices(self, tty_regex: str = ".*", **kwargs) -> tp.List[Device]:
@@ -97,3 +104,14 @@ class SerialReader(BaseReader):
         Returns a Device if the class extending SerialReader can discover a meter with the configured settings
         """
         raise NotImplementedError("This is just an abstract class.")
+
+    def reader_info_metric_dict(self) -> tp.Dict[str, str]:
+        info_dict = {
+            "meter_address": self.serial_url,
+            "baudrate": str(self.baudrate),
+            "bytesize": str(self.bytesize),
+            "stopbits": str(self.stopbits),
+            "timeout": str(self.timeout),
+            "parity": str(self.parity),
+        }
+        return {**info_dict, **super().reader_info_metric_dict()}

@@ -7,9 +7,12 @@ import re
 import typing as tp
 
 import serial
+from prometheus_client import Metric
+from prometheus_client.metrics_core import CounterMetricFamily
 
 from pymeterreader.device_lib.common import Sample, Device, ChannelValue
 from pymeterreader.device_lib.serial_reader import SerialReader
+from pymeterreader.metrics.prefix import METRICS_PREFIX
 
 logger = logging.getLogger(__name__)
 
@@ -43,22 +46,7 @@ class PlainReader(SerialReader):
         self.__initial_baudrate = initial_baudrate
         self.__baudrate = baudrate
 
-    def poll(self) -> tp.Optional[Sample]:
-        """
-        Public method for polling a Sample from the meter. Enforces that the meter_id matches.
-        :return: Sample, if successful
-        """
-        sample = self.__fetch_sample()
-        if sample is not None:
-            if self.meter_id_matches(sample):
-                return sample
-        return None
-
-    def __fetch_sample(self) -> tp.Optional[Sample]:
-        """
-        Try to retrieve a Sample from any connected meter with the current configuration
-        :return: Sample, if successful
-        """
+    def _fetch_untracked(self) -> tp.Optional[Sample]:
         try:
             # Acquire Lock to prevent pySerial exceptions when trying to access the serial port concurrently
             with self._serial_lock:
@@ -84,7 +72,7 @@ class PlainReader(SerialReader):
             init: str = init_bytes.decode("utf-8")
             response: str = response_bytes.decode("utf-8")
             logger.debug(f"Plain response: ({init}){response}")
-            sample = self.__parse(response)
+            sample = PlainReader.__parse(response)
             if sample is not None:
                 return sample
             logger.error("Parsing the response did not yield a Sample!")
@@ -104,10 +92,41 @@ class PlainReader(SerialReader):
         """
         Returns a Device if the class extending SerialReader can discover a meter with the configured settings
         """
-        sample = self.__fetch_sample()
+        sample = self.fetch()
         if sample is not None:
             return Device(sample.meter_id, self.serial_url, self.PROTOCOL, sample.channels)
         return None
+
+    def reader_info_metric_dict(self) -> tp.Dict[str, str]:
+        info_dict = super().reader_info_metric_dict()
+        info_dict["initial_baudrate"] = str(self.__initial_baudrate)
+        info_dict["baudrate"] = str(self.__baudrate)
+        info_dict["wakeup_zeros"] = str(self.__wakeup_zeros)
+        return info_dict
+
+    def channel_metric(self, channel: ChannelValue, meter_id: str, meter_name: str, epochtime: float) -> tp.Iterator[
+        Metric]:
+        if channel.unit is not None:
+            if "kWh" in channel.unit and "6.8" in channel.channel_name:
+                # Adhere to Prometheus unit convention
+                # Watt Hours * 3600 Seconds/Hour == Watt Seconds == Joules
+                joules = channel.value * 3600
+                energy = CounterMetricFamily(
+                    METRICS_PREFIX + "energy_consumption_joules",
+                    "Energy consumption in joules",
+                    labels=["meter_id", "meter_name"],
+                )
+                energy.add_metric([meter_id, meter_name], joules, timestamp=epochtime)
+                yield energy
+            if "m3" in channel.unit and "6.26" in channel.channel_name:
+                volume = CounterMetricFamily(
+                    METRICS_PREFIX + "flow_volume_cubic_meters",
+                    "Flow volume in cubic meters",
+                    labels=["meter_id", "meter_name"],
+                )
+                volume.add_metric([meter_id, meter_name], channel.value, timestamp=epochtime)
+                yield volume
+        yield from ()
 
     @staticmethod
     def __parse(response: str) -> tp.Optional[Sample]:

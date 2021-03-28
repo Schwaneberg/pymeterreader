@@ -1,6 +1,6 @@
 import typing as tp
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 @dataclass()
@@ -14,7 +14,7 @@ class ChannelUploadInfo:
     :param last_value: last value in middleware
     """
     uuid: str
-    interval: tp.Union[int, float]
+    interval: timedelta
     factor: float
     last_upload: datetime
     last_value: tp.Union[int, float]
