@@ -204,7 +204,7 @@ class Bme280Reader(BaseReader):
                         logger.debug("Using cached calibration data")
                     calibration_data = self.__calibration_data
                     # Reconfigure sensor
-                    if self.__reconfiguration_required:
+                    if self.__reconfiguration_required or self.mode is Bme280SensorMode.FORCED:
                         # Reset sensor to sleep mode for reconfiguration
                         self.__reset(bus)
                         logger.debug("Reconfiguring sensor")
@@ -227,7 +227,7 @@ class Bme280Reader(BaseReader):
                         time.sleep(measurement_time / 1000)
                         # Read measuring status
                         measuring, _ = self.__read_status(bus)
-                        if measuring is True:
+                        if measuring:
                             logger.error("Measurement is still in progress after maximum measurement time! Aborting...")
                             return None
                     # Read measurement registers
