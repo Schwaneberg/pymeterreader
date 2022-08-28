@@ -138,7 +138,7 @@ class MeterReader:
         :return: dict with all configuration entries
         """
         try:
-            with open(file_name, 'r') as conf_file:
+            with open(file_name, 'r', encoding='utf-8') as conf_file:
                 return load(conf_file, Loader=FullLoader)
         except OSError as err:
             if isinstance(err, FileNotFoundError):

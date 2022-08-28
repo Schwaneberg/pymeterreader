@@ -70,7 +70,7 @@ class MeterReaderNode:
         :param sample: optional sample data (skip polling)
         :returns True if successful
         """
-        # pylint: disable=too-many-arguments, too-many-nested-blocks
+        # pylint: disable=too-many-nested-blocks
         now = datetime.now(timezone.utc)
         posted = 0
         if sample is None:

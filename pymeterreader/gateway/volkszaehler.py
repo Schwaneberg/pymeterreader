@@ -25,6 +25,7 @@ class VolkszaehlerGateway(BaseGateway):
     """
     DATA_PATH = "data"
     SUFFIX = ".json"
+    REQUEST_TIMEOUT = 20
     VOLKSZAEHLER_INFO = Info(METRICS_PREFIX + "volkszahler_gateway", "Information about the Volkszaehler Gateway")
     POST_COUNTER = Counter(METRICS_PREFIX + "volkszahler_gateway_uploads", "Number of successful POST requests")
     POST_FAILURE_COUNTER = Counter(METRICS_PREFIX + "volkszahler_gateway_failed_uploads",
@@ -62,7 +63,7 @@ class VolkszaehlerGateway(BaseGateway):
         try:
             timestamp_utc_milliseconds = int(timestamp.timestamp() * 1000)
             data = {"ts": timestamp_utc_milliseconds, "value": value}
-            response = requests.post(rest_url, data=data)
+            response = requests.post(rest_url, data=data, timeout=VolkszaehlerGateway.REQUEST_TIMEOUT)
             response.raise_for_status()
             logger.info(f'POST {data} to {rest_url}: {response}')
             return True
@@ -75,7 +76,7 @@ class VolkszaehlerGateway(BaseGateway):
         rest_url = VolkszaehlerGateway.urljoin(self.url, self.DATA_PATH, channel_info.uuid, self.SUFFIX)
         params = {"options": 'raw', "to": int(time() * 1000)}
         try:
-            response = requests.get(rest_url, params=params)
+            response = requests.get(rest_url, params=params, timeout=VolkszaehlerGateway.REQUEST_TIMEOUT)
             response.raise_for_status()
             parsed = json.loads(response.content.decode('utf-8'))
             if 'data' in parsed and parsed.get('data').get('rows', 0) > 0:
@@ -106,7 +107,7 @@ class VolkszaehlerGateway(BaseGateway):
         channel_url = VolkszaehlerGateway.urljoin(self.url, 'channel.json')
         extracted_channels: tp.List[ChannelDescription] = []
         try:
-            response = requests.get(channel_url)
+            response = requests.get(channel_url, timeout=VolkszaehlerGateway.REQUEST_TIMEOUT)
             response.raise_for_status()
             channels_list: tp.List[dict] = json.loads(response.content)['channels']
             logger.debug(f'GET from {channel_url}: {response}')

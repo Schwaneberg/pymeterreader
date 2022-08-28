@@ -116,7 +116,7 @@ class Wizard:
 
         service_str = SERVICE_TEMPLATE.format(f'pymeterreader -c {self.POSIX_CONFIG_PATH.absolute()}')
         try:
-            with open(target_service_file, 'w') as target_file:
+            with open(target_service_file, 'w', encoding='utf-8') as target_file:
                 target_file.write(service_str)
             run('systemctl daemon-reload',  # pylint: disable=subprocess-run-check
                 universal_newlines=True,
@@ -124,9 +124,9 @@ class Wizard:
             if not exists(self.POSIX_CONFIG_PATH):
                 self.menu.stdscr.addstr(1, 0,
                                         f"Copy example configuration file to '{self.POSIX_CONFIG_PATH.absolute()}'")
-                with open('example_configuration.yaml', 'r') as file:
+                with open('example_configuration.yaml', 'r', encoding='utf-8') as file:
                     example_config = file.read()
-                with open(self.POSIX_CONFIG_PATH, 'w') as file:
+                with open(self.POSIX_CONFIG_PATH, 'w', encoding='utf-8') as file:
                     file.write(example_config)
             self.menu.stdscr.addstr(2, 0, "Registered pymeterreader as service.\n"
                                           "Enable with 'sudo systemctl enable pymeterreader'\n."
@@ -156,7 +156,7 @@ class Wizard:
                 config_path = self.POSIX_CONFIG_PATH
             else:
                 config_path = Path(".") / "pymeterreader.yaml"
-            with open(config_path, "w") as config_file:
+            with open(config_path, "w", encoding='utf-8') as config_file:
                 config_file.write(result)
             self.menu.stdscr.addstr(0, 0, f"Saved to {config_path.absolute()}")
         except PermissionError:
