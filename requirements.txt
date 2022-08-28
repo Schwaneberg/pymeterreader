@@ -5,5 +5,5 @@ requests
 PyYAML
 smbus2
 construct
-curses-menu
+curses-menu==0.5.0
 prometheus-client
