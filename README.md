@@ -44,7 +44,7 @@ Grafana can be used to easily create [Dashboards](https://snapshot.raintank.io/d
 * If a meter supplies an energy consumption counter and a power measurement, the power measurement can be discarded.
   The power measurement average can instead be calculated from the difference between energy consumption datapoints.
 
-### Prometheus Configuration Example
+### Pymeterreader Configuration Example
 ```
 scrape_configs:
   - job_name: 'pymeterreader'
