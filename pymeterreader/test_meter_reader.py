@@ -53,7 +53,9 @@ class MockedReader():
 
 
 class TestMeterReader(unittest.TestCase):
-    @mock.patch("pymeterreader.meter_reader.VolkszaehlerGateway", return_value=MockedGateway('http://192.168.1.1/', True))
+    #pylint: disable=unused-argument
+    @mock.patch("pymeterreader.meter_reader.VolkszaehlerGateway", return_value=MockedGateway('http://192.168.1.1/',
+                                                                                             True))
     @mock.patch("pymeterreader.meter_reader.SmlReader", return_value=MockedReader(SAMPLE_SML))
     @mock.patch("pymeterreader.meter_reader.PlainReader", return_value=MockedReader(SAMPLE_PLAIN))
     @mock.patch("pymeterreader.meter_reader.Bme280Reader", return_value=MockedReader(SAMPLE_BME))
