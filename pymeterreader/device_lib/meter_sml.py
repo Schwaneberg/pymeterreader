@@ -60,12 +60,14 @@ class SmlReader(SerialReader):
             # Test if SML End Sequence is present
             assert sml_reconstructed[8:-4].endswith(
                 self.__END_SEQ), "Reconstructed SML sequence has malformed End Sequence!"
-            _, frame = SmlBase.parse_frame(sml_reconstructed)
-            if frame is not None:
-                sample = self.__parse(frame)
-                if sample is not None:
-                    return sample
-                logger.error("Parsing the SML frame did not yield a Sample!")
+            result = SmlBase.parse_frame(sml_reconstructed)
+            if len(result) == 2:
+                _, frame = result
+                if frame is not None:
+                    sample = self.__parse(frame)
+                    if sample is not None:
+                        return sample
+                    logger.error("Parsing the SML frame did not yield a Sample!")
             logger.error("Could not parse the binary SML data")
         except AssertionError as err:
             logger.error(f"SML parsing failed: {err}")
