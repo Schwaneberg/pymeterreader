@@ -14,6 +14,7 @@ class I2CTestData(TestData):
 
 
 class MockBus:
+    # pylint: disable=unused-argument
     def __init__(self, i2c_addr: int, test_data: I2CTestData) -> None:
         self.i2c_addr = i2c_addr
         self.test_data = test_data
@@ -30,8 +31,8 @@ class MockBus:
         assert self.open is True
         try:
             return self.test_data.static_registers[register]
-        except KeyError:
-            raise AssertionError(f"Register address {register} is not in the I2CTestData!")
+        except KeyError as err:
+            raise AssertionError(f"Register address {register} is not in the I2CTestData!") from err
 
     def read_i2c_block_data(self, i2c_addr, register, length, force=None) -> tp.List[int]:
         output_list: tp.List[int] = []

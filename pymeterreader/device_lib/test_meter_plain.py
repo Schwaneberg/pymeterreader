@@ -12,7 +12,8 @@ from pymeterreader.device_lib.test_meter import StaticMeterSimulator, SerialTest
 class PlainMeterSimulator(StaticMeterSimulator):
     """
     Simulate a Plain Meter that requires a wakeup before sending a sample.
-    This implementation is not compatible with a loop:// interface since it depends on having different send/receiver buffers.
+    This implementation is not compatible with a loop:// interface since
+    it depends on having different send/receiver buffers.
     """
 
     def __init__(self) -> None:
