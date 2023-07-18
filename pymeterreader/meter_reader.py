@@ -14,6 +14,7 @@ from yaml import load, FullLoader
 from pymeterreader.core import MeterReaderTask, MeterReaderNode, ChannelUploadInfo
 from pymeterreader.device_lib import strip, SmlReader, PlainReader, Bme280Reader, BaseReader
 from pymeterreader.device_lib.common import humanfriendly_time_parser, ConfigurationError
+from pymeterreader.device_lib.sma_webconnect import SMAWebconnectReader
 from pymeterreader.gateway import BaseGateway, VolkszaehlerGateway, DebugGateway
 from pymeterreader.metrics.metrics_collector import MetricsJiTCollector
 
@@ -59,6 +60,8 @@ def map_configuration(config: dict) -> tp.List[MeterReaderNode]:  # noqa MC0001
                         reader = PlainReader(**device, meter_name=meter_name)
                     elif protocol == 'BME280':
                         reader = Bme280Reader(**device, meter_name=meter_name)
+                    elif protocol == 'WEBCONNECT':
+                        reader = SMAWebconnectReader(**device, meter_name=meter_name)
                     else:
                         logging.error(f'Unsupported protocol {protocol}')
                         reader = None
