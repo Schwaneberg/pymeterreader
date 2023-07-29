@@ -14,7 +14,7 @@ from yaml import load, FullLoader
 from pymeterreader.core import MeterReaderTask, MeterReaderNode, ChannelUploadInfo
 from pymeterreader.device_lib import strip, SmlReader, PlainReader, Bme280Reader, BaseReader
 from pymeterreader.device_lib.common import humanfriendly_time_parser, ConfigurationError
-from pymeterreader.gateway import BaseGateway, VolkszaehlerGateway, DebugGateway
+from pymeterreader.gateway import BaseGateway, VolkszaehlerGateway, DebugGateway, MQTTGateway
 from pymeterreader.metrics.metrics_collector import MetricsJiTCollector
 
 PARSER = argparse.ArgumentParser(description='MeterReader reads out supported devices '
@@ -46,6 +46,8 @@ def map_configuration(config: dict) -> tp.List[MeterReaderNode]:  # noqa MC0001
                 gateway: tp.Optional[BaseGateway] = VolkszaehlerGateway(**middleware_configuration)
             elif middleware_type == 'debug':
                 gateway = DebugGateway(**middleware_configuration)
+            elif middleware_type == "mqtt":
+                gateway = MQTTGateway(**middleware_configuration)
             else:
                 logging.error(f'Middleware "{middleware_type}" not supported!')
                 gateway = None

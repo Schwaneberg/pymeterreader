@@ -1,16 +1,24 @@
 """
 Implementing a MQTT client
 """
+import sys
 from datetime import datetime
 import logging
-from typing import Optional, Literal, Union, List
-import ssl
+from typing import Optional, List, Union, Tuple, Dict
 import paho.mqtt.client as mqtt
+from paho.mqtt.publish import single
 
 from pymeterreader.core import ChannelUploadInfo, ChannelDescription
 from pymeterreader.gateway import BaseGateway
 
 logger = logging.getLogger(__name__)
+if sys.version_info.minor >= 8:
+    from typing import Literal
+    t_protocol = Literal["3.1", "3.1.1", "5.0"]
+    t_transport = Literal["tcp", "websocket"]
+else:
+    t_protocol = str
+    t_transport = None
 
 
 class MQTTGateway(BaseGateway):
@@ -20,35 +28,43 @@ class MQTTGateway(BaseGateway):
     def __init__(self, middleware_url: str,
                  user: Optional[str] = None, password: Optional[str] = None,
                  certfile: Optional[str] = None, keyfile: Optional[str] = None,
-                 protocol_version: Literal["3.1", "3.1.1", "5.0"] = "3.1.1",
-                 transport: Literal["tcp", "websocket"] = "tcp"):
+                 protocol_version: t_protocol = "3.1.1",
+                 transport: t_transport = "tcp",
+                 port: int = 1883):
         if protocol_version == "3.1.1":
-            protocol = mqtt.MQTTv311
+            self.protocol = mqtt.MQTTv311
         elif protocol_version == "3.1":
-            protocol = mqtt.MQTTv311
+            self.protocol = mqtt.MQTTv311
         elif protocol_version == "5.0":
-            protocol = mqtt.MQTTv5
+            self.protocol = mqtt.MQTTv5
         else:
             raise NotImplementedError(f"MQTT protocol version {protocol_version} is not supported")
-
-        self.client = mqtt.Client(client_id="PyMeterReader",
-                                  transport=transport,
-                                  protocol=protocol)
-        if user is not None and password is not None:
-            self.client.username_pw_set(user, password)
-        self.client.tls_set(certfile=certfile,
-                            keyfile=keyfile,
-                            cert_reqs=ssl.CERT_REQUIRED)
+        self.url = middleware_url
+        self.auth = {'username': user, 'password': password}
+        self.certfile = certfile
+        self.keyfile = keyfile
+        self.transport = transport
+        self.port = port
+        self.post_timestamps: Dict[str, Tuple[datetime, Union[int, float]]] = {}
 
     def post(self, channel: ChannelUploadInfo, value: Union[int, float], sample_timestamp: datetime,
              poll_timestamp: datetime) -> bool:
-        ...
+        try:
+            value_to_post = f"{channel.factor * value:.2f}"
+            single(channel.uuid, payload=value_to_post, qos=0, retain=True, hostname=self.url,
+                   port=self.port, client_id="", keepalive=60, auth=self.auth, tls=None,
+                   protocol=self.protocol, transport=self.transport)
+            self.post_timestamps[channel.uuid] = sample_timestamp, value
+        except Exception as err:
+            logger.error(err)
+            return False
+        return True
 
     def get_upload_info(self, channel_info: ChannelUploadInfo) -> Optional[ChannelUploadInfo]:
-        ...
+        timestamp, value = self.post_timestamps.get(channel_info.uuid, (None, None))
+        if timestamp is not None and value is not None:
+            return ChannelUploadInfo(channel_info.uuid, channel_info.interval, channel_info.factor, timestamp, value)
+        return None
 
     def get_channels(self) -> List[ChannelDescription]:
         return []
-
-    def mqtt_on_message(self, client, userdata, message):
-        logger.info(f"MQTT Message: '{message}' on topic '{message.topic}' with QoS '{message.qos}'")
