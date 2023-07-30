@@ -42,7 +42,7 @@ class MQTTGateway(BaseGateway):
         :param protocol_version: MQTT version 3.1, 3.1.1 or 5.0 (default "3.1.1")
         :param transport: Transport via "websockets" or "tcp" (default "tcp")
         :param port: MQTT Broker port (default 1883)
-        # pylint: disable=too-many-arguments
+        # pylint: disable=too-many-arguments, too-many-arguments
         """
         super().__init__(**kwargs)
         if protocol_version == "3.1.1":
