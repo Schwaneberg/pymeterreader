@@ -9,8 +9,9 @@ from typing import Optional, List, Union, Tuple, Dict
 import paho.mqtt.client as mqtt
 from paho.mqtt.publish import single
 
-from pymeterreader.core import ChannelUploadInfo, ChannelDescription
-from pymeterreader.gateway import BaseGateway
+from pymeterreader.core.channel_description import ChannelDescription
+from pymeterreader.core.channel_upload_info import ChannelUploadInfo
+from pymeterreader.gateway.basegateway import BaseGateway
 
 logger = logging.getLogger(__name__)
 if sys.version_info.minor >= 8:
@@ -34,7 +35,7 @@ class MQTTGateway(BaseGateway):
         :param middleware_url: IP or host name of the MQTT router
         :param user: user name for the MQTT client connection
         :param password: optional password for authentication
-        :param ca_ceerts: a string path to the Certificate Authority certificate files that are to be treated as trusted.
+        :param ca_ceerts: a string path to the Certificate Authority certificate files that are to be treated as trusted
         :param certfile: path to the certificate file
         :param keyfile: Optional key file path
         :param insecure: Disable certificate validation
