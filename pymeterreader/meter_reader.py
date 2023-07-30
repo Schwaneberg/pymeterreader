@@ -14,7 +14,7 @@ from yaml import load, FullLoader
 from pymeterreader.core import MeterReaderTask, MeterReaderNode, ChannelUploadInfo
 from pymeterreader.device_lib import strip, SmlReader, PlainReader, Bme280Reader, BaseReader
 from pymeterreader.device_lib.common import humanfriendly_time_parser, ConfigurationError
-from pymeterreader.gateway import BaseGateway, VolkszaehlerGateway, DebugGateway
+from pymeterreader.gateway import BaseGateway, VolkszaehlerGateway, DebugGateway, MQTTGateway
 from pymeterreader.metrics.metrics_collector import MetricsJiTCollector
 
 PARSER = argparse.ArgumentParser(description='MeterReader reads out supported devices '
@@ -46,6 +46,8 @@ def map_configuration(config: dict) -> tp.List[MeterReaderNode]:  # noqa MC0001
                 gateway: tp.Optional[BaseGateway] = VolkszaehlerGateway(**middleware_configuration)
             elif middleware_type == 'debug':
                 gateway = DebugGateway(**middleware_configuration)
+            elif middleware_type == "mqtt":
+                gateway = MQTTGateway(**middleware_configuration)
             else:
                 logging.error(f'Middleware "{middleware_type}" not supported!')
                 gateway = None
@@ -74,9 +76,12 @@ def map_configuration(config: dict) -> tp.List[MeterReaderNode]:  # noqa MC0001
                                     interval = humanfriendly_time_parser(configuration_channel.get('interval', '1h'))
                                     uuid = configuration_channel.get('uuid')
                                     factor = configuration_channel.get('factor', 1.0)
+                                    device_class = configuration_channel.get('device_class', 'energy')
+                                    unit_of_measurement = configuration_channel.get('unit_of_measurement', 'Wh')
                                     if strip(str(configuration_channel_name)) in strip(sample_channel.channel_name):
                                         zero_datetime = datetime.fromtimestamp(0, timezone.utc)
-                                        upload_info = ChannelUploadInfo(uuid, interval, factor, zero_datetime, - 1)
+                                        upload_info = ChannelUploadInfo(uuid, interval, factor, zero_datetime, - 1,
+                                                                        device_class, unit_of_measurement)
                                         # Replacing config string with exact match
                                         available_channels[sample_channel.channel_name] = upload_info
                             # Do not require configuring channels if Prometheus Server is active
