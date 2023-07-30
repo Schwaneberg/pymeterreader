@@ -1,6 +1,7 @@
 """
 Implementing a MQTT client
 """
+import json
 import sys
 from datetime import datetime
 import logging
@@ -25,12 +26,23 @@ class MQTTGateway(BaseGateway):
     """
     This Gateway acts an an MQTT client
     """
-    def __init__(self, middleware_url: str,
-                 user: Optional[str] = None, password: Optional[str] = None,
-                 certfile: Optional[str] = None, keyfile: Optional[str] = None,
-                 protocol_version: t_protocol = "3.1.1",
-                 transport: t_transport = "tcp",
-                 port: int = 1883):
+    def __init__(self, middleware_url: str, user: Optional[str] = None, password: Optional[str] = None,
+                 certfile: Optional[str] = None, keyfile: Optional[str] = None, insecure: Optional[bool] = False,
+                 ciphers: Optional[str] = None, ca_ceerts: Optional[str] = None, protocol_version: t_protocol = "3.1.1",
+                 transport: t_transport = "tcp", port: int = 1883, **kwargs):
+        """
+        :param middleware_url: IP or host name of the MQTT router
+        :param user: user name for the MQTT client connection
+        :param password: optional password for authentication
+        :param ca_ceerts: a string path to the Certificate Authority certificate files that are to be treated as trusted.
+        :param certfile: path to the certificate file
+        :param keyfile: Optional key file path
+        :param insecure: Disable certificate validation
+        :param protocol_version: MQTT version 3.1, 3.1.1 or 5.0 (default "3.1.1")
+        :param transport: Transport via "websockets" or "tcp" (default "tcp")
+        :param port: MQTT Broker port (default 1883)
+        """
+        super().__init__(**kwargs)
         if protocol_version == "3.1.1":
             self.protocol = mqtt.MQTTv311
         elif protocol_version == "3.1":
@@ -41,6 +53,9 @@ class MQTTGateway(BaseGateway):
             raise NotImplementedError(f"MQTT protocol version {protocol_version} is not supported")
         self.url = middleware_url
         self.auth = {'username': user, 'password': password}
+        self.tls = {'ca_certs': ca_ceerts, 'certfile': certfile,
+                    'keyfile': keyfile, 'tls_version': None,
+                    'ciphers': ciphers, 'insecure': insecure} if ca_ceerts or certfile or keyfile else None
         self.certfile = certfile
         self.keyfile = keyfile
         self.transport = transport
@@ -50,9 +65,14 @@ class MQTTGateway(BaseGateway):
     def post(self, channel: ChannelUploadInfo, value: Union[int, float], sample_timestamp: datetime,
              poll_timestamp: datetime) -> bool:
         try:
-            value_to_post = f"{channel.factor * value:.2f}"
-            single(channel.uuid, payload=value_to_post, qos=0, retain=True, hostname=self.url,
-                   port=self.port, client_id="", keepalive=60, auth=self.auth, tls=None,
+            payload = json.dumps({
+                "state": channel.factor * value,
+                "dev_cla": channel.device_class,
+                "unit_of_meas": channel.unit_of_measurement
+            })
+            logger.debug(f"MQTT Payload: {payload}")
+            single(channel.uuid, payload=payload, qos=0, retain=True, hostname=self.url,
+                   port=self.port, client_id="", keepalive=60, auth=self.auth, tls=self.tls,
                    protocol=self.protocol, transport=self.transport)
             self.post_timestamps[channel.uuid] = sample_timestamp, value
         except Exception as err:

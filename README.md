@@ -3,6 +3,7 @@
 A flexible and easy to configure service to collect and forward readings from smart meters and other sensors.
 It supports the Volkszaehler middleware and can be used as a replacement of vzlogger.
 Alternatively it supports exposing measurements in the OpenMetrics format for usage with monitoring tools like Prometheus.
+Since version 0.3.0, it also supports MQTT, allowing many applications such as Home Assistant.
 
 ## Supported Devices
 - Meters with SML protocol, tested with EMH electricity meters
@@ -56,4 +57,60 @@ scrape_configs:
       - source_labels: [ __name__ ]
         regex: pymeterreader_power_consumption_watts
         action: drop
+```
+
+## MQTT
+The uuid field will be used to define a topic, when the gateway type is MQTT.
+Channels can be extended by defining "device_class" and "unit_of_measurement".
+Note that the wizard does not yet support MQTT configuration.
+
+Example configuration:
+```
+devices:
+  '12345678':
+    channels:
+      '6.8':
+        interval: 12h
+        uuid: meter/heat/total_absorbed
+        unit_of_measurement: kWh
+    meter_address: hwgrep://0403:6015
+    meter_id: '12345678'
+    protocol: PLAIN
+  1 HLYxx:
+    channels:
+      1-0:1.8.0*255:
+        interval: 5m
+        uuid: meter/electric/total_absorbed
+      1-0:2.8.0*255:
+        interval: 5m
+        uuid: meter/electric/total_yield
+    meter_address: hwgrep://10c4:ea60
+    protocol: SML
+  BME280-078fc53ee157b535d787a94e8ac2f05ed6083c8d21ef77389021ae97961d7d0a:
+    channels:
+      HUMIDITY:
+        interval: 1h
+        uuid: basement/sensor/humidity
+        unit_of_measurement: "%"
+        device_class: humidity
+      PRESSURE:
+        factor: 0.01
+        interval: 1h
+        uuid: basement/sensor/pressure
+        unit_of_measurement: hPa
+        device_class: atmospheric_pressure
+      TEMPERATURE:
+        interval: 1h
+        uuid: basement/sensor/temperature
+        device_class: temperature
+        unit_of_measurement: °C
+    meter_address: 0x76@I2C(1)
+    meter_id: BME280-078fc53ee157b535d787a94e8ac2f05ed6083c8d21ef77389021ae97961d7d0a
+    protocol: BME280
+middleware:
+  type: mqtt
+  middleware_url: localhost
+  user: username
+  password: password
+  port: 1883
 ```
